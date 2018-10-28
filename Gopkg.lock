@@ -14,6 +14,18 @@
   version = "v0.1.0"
 
 [[projects]]
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  revision = "ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb"
+  version = "v0.0.3"
+
+[[projects]]
+  name = "github.com/olekukonko/tablewriter"
+  packages = ["."]
+  revision = "e6d60cf7ba1f42d86d54cdf5508611c4aafb3970"
+  version = "v0.0.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/xwb1989/sqlparser"
   packages = [
@@ -34,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "004a5d980f3e31c8cf11394543401c5e5ff29376448b784a4087a672ad817d84"
+  inputs-digest = "07ede11fc55d562ad799478dd44aae1d8625a2523bce5c0791dde19906e6558b"
   solver-name = "gps-cdcl"
   solver-version = 1

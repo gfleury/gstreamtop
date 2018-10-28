@@ -2,9 +2,8 @@ package tablestream
 
 import (
 	"fmt"
+	"os"
 	"sort"
-
-	"github.com/xwb1989/sqlparser"
 )
 
 type View struct {
@@ -110,53 +109,32 @@ func (v *View) GetStringViewData(idx int) []string {
 	return ret
 }
 
-func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *Table, deep bool) string {
+func (v *View) GetAllRows() [][]string {
+	allRows := make([][]string, len(v.viewData)+1)
 
-	for _, selectedExpr := range selectedExpr {
-
-		switch selectedExpr := selectedExpr.(type) {
-		case *sqlparser.StarExpr:
-			// return any field as it is considering '*'
-			if deep {
-				fieldName := "*"
-				field := table.GetField(table.fields[0].name)
-
-				view.AddViewData(&ViewData{
-					field: field,
-					name:  fieldName,
-					data:  make(map[string]interface{}),
-				})
-				return "*"
+	for i, column := range v.viewData {
+		columnName := column.name
+		if column.modifier != "SetValue" {
+			columnName = fmt.Sprintf("%s(%s)", column.modifier, columnName)
+		}
+		allRows[0] = append(allRows[0], columnName)
+		switch column.field.fieldType {
+		case VARCHAR:
+			data := v.GetStringViewData(i)
+			allRows[i+1] = append(allRows[i+1])
+			for i := range data {
+				allRows[i+1] = append(allRows[i+1], data[i])
 			}
-
-		case *sqlparser.AliasedExpr:
-			switch selectedExpr := selectedExpr.Expr.(type) {
-			case *sqlparser.ColName:
-				fieldName := selectedExpr.Name.String()
-				field := table.GetField(fieldName)
-
-				viewData := &ViewData{
-					field: field,
-					name:  fieldName,
-					data:  make(map[string]interface{}),
-				}
-				viewData.UpdateModifier("SetValue")
-				view.AddViewData(viewData)
-
-				if deep {
-					return fieldName
-				}
-
-			case *sqlparser.FuncExpr:
-				modfier := selectedExpr.Name.String()
-				fieldName := view.createFieldMapping(selectedExpr.Exprs, table, true)
-				viewData := view.GetViewData(fieldName)
-				if viewData.name == "" {
-					continue
-				}
-				viewData.UpdateModifier(modfier)
+		case INTEGER:
+			data := v.GetIntViewData(i)
+			for i := range data {
+				allRows[i+1] = append(allRows[i+1], fmt.Sprintf("%d", data[i]))
 			}
 		}
 	}
-	return ""
+	return allRows
+}
+
+func (v *View) PrintView() {
+	TableWrite(v, os.Stdout)
 }

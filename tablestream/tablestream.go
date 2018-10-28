@@ -47,6 +47,8 @@ func (t *Table) AddRow(row string) error {
 		for i, name := range t.fieldRegexMap.SubexpNames() {
 			if i != 0 && name != "" {
 				tableRow[name] = match[i]
+			} else if name == "" {
+				tableRow[t.fields[i].name] = match[i]
 			}
 		}
 		for _, fieldTypeInstanceChannel := range t.typeInstance {

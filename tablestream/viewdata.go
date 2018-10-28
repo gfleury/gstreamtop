@@ -13,12 +13,14 @@ type ViewData struct {
 	field       *Field
 	table       *Table
 	updateValue reflect.Value
+	modifier    string
 }
 
 func (v *ViewData) UpdateModifier(mod string) {
 	t := reflect.ValueOf(v)
 	m := t.MethodByName(mod)
 	v.updateValue = m
+	v.modifier = mod
 }
 
 func (v *ViewData) SUM(newData interface{}, groupByName string) error {

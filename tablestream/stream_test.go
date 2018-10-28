@@ -1,58 +1,79 @@
 package tablestream
 
 import (
-	"fmt"
-	"testing"
-
 	"gopkg.in/check.v1"
 )
 
-type Suite struct{}
+func (s *Suite) TestGetTable(c *check.C) {
+	table, err := s.stream.GetTable("user")
 
-var _ = check.Suite(Suite{})
-
-func Test(t *testing.T) {
-	check.TestingT(t)
+	c.Assert(err, check.IsNil)
+	c.Assert(table.name, check.Equals, "user")
 }
 
-func (Suite) TestQuery(c *check.C) {
+func (s *Suite) TestAddTable(c *check.C) {
+	table := Table{name: "TableTest_Fake"}
+	s.stream.AddTable(&table)
+	tableGot, err := s.stream.GetTable("TableTest_Fake")
+
+	c.Assert(err, check.IsNil)
+	c.Assert(&table, check.Equals, tableGot)
+}
+
+func (s *Suite) TestAddView(c *check.C) {
+	view := CreateView("testview", "gby")
+	s.stream.AddView(view)
+
+	viewGot, err := s.stream.GetView("testview")
+
+	c.Assert(err, check.IsNil)
+	c.Assert(view, check.Equals, viewGot)
+}
+
+func (s *Suite) TestGetView(c *check.C) {
+	_, err := s.stream.GetView("user")
+
+	c.Assert(err, check.NotNil)
+}
+
+func (s *Suite) TestQuerySelectWithoutGroupBy(c *check.C) {
+	query := `SELECT shell FROM user;`
+	err := s.stream.Query(query)
+
+	c.Assert(err, check.ErrorMatches, "the query should have at least one GROUP BY, for filtering use grep")
+}
+
+func (s *Suite) TestQueryCreateTableWithoutRegexMapping(c *check.C) {
 	query := `CREATE TABLE user(gid INTEGER, shell VARCHAR)
-		 	      FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
 						LINES TERMINATED BY '\n';`
+	err := s.stream.Query(query)
 
-	stream := Stream{}
+	c.Assert(err, check.ErrorMatches, "unable to find FIELDS IDENTIFIED by")
+}
 
-	err := stream.Query(query)
-	c.Assert(err, check.IsNil)
+func (s *Suite) TestQueryCreateTableWithWrongRegexMapping(c *check.C) {
+	query := `CREATE TABLE user(gid INTEGER, shell VARCHAR)
+						FIELDS IDENTIFIED BY '(Invalidxxx regexppp?d>[09]+):.*:(l>.[^:]*)$'
+						LINES TERMINATED BY '\n';`
+	err := s.stream.Query(query)
 
-	query = `SELECT shell, COUNT(*), SUM(gid)
-					FROM user
-					GROUP BY shell;`
+	c.Assert(err, check.ErrorMatches, "regex present on FIELDS IDENTIFIED by failed to compile.*")
+}
 
-	err = stream.Query(query)
-	c.Assert(err, check.IsNil)
+func (s *Suite) TestQueryCreateTableWithMissingFieldsFromRegex(c *check.C) {
+	query := `CREATE TABLE user(gid INTEGER, shell VARCHAR)
+						FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*$'
+						LINES TERMINATED BY '\n';`
+	err := s.stream.Query(query)
 
-	table, err := stream.GetTable("user")
-	c.Assert(err, check.IsNil)
+	c.Assert(err, check.ErrorMatches, "regex groups doesn't match table columns: missing -1 field.*")
+}
 
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
+func (s *Suite) TestQueryCreateTableWithMissingFieldsFromTableFields(c *check.C) {
+	query := `CREATE TABLE user(shell VARCHAR)
+						FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
+						LINES TERMINATED BY '\n';`
+	err := s.stream.Query(query)
 
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/true")
-
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/bin")
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/bin")
-	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/bin")
-
-	c.Assert(err, check.IsNil)
-
-	res := stream.views[0].GetStringViewData(0)
-	fmt.Println(res)
-	resS := stream.views[0].GetIntViewData(1)
-	fmt.Println(resS)
-	resS = stream.views[0].GetIntViewData(2)
-	fmt.Println(resS)
+	c.Assert(err, check.ErrorMatches, "regex groups doesn't match table columns: missing 1 field.*")
 }
