@@ -4,13 +4,11 @@ go:
   - 1.10.x
   - master
 script:
-  - 'if [ "${JOB}" = "test" ]; then make race; fi'
-#  - 'if [ "${JOB}" = "gometalinter" ]; then while true; do echo .; sleep 30; done & if [ "${TRAVIS_EVENT_TYPE}" = "push" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then make lint; else make metalint; fi; fi'
+  - 'if [ "${JOB}" = "test" ]; then make test; fi'
 env:
   global:
     - GOARCH=amd64
   matrix:
     - JOB=test
-#    - JOB=gometalinter
 jobs:
   fast_finish: true
