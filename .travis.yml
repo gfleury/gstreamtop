@@ -11,7 +11,6 @@ env:
     - GOARCH=amd64
   matrix:
     - JOB=test
-    - JOB=leakdetector
 #    - JOB=gometalinter
 jobs:
   fast_finish: true
