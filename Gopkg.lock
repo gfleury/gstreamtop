@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  name = "github.com/gizak/termui"
+  packages = ["."]
+  revision = "bf53c5cbea3f372f745e1d8e4660e29f73d41517"
+  version = "v2.3.0"
+
+[[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+  version = "v1.0"
+
+[[projects]]
   name = "github.com/kr/pretty"
   packages = ["."]
   revision = "73f6ac0b30a98e433b289500d779f50c1a6f0712"
@@ -14,16 +26,46 @@
   version = "v0.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/maruel/panicparse"
+  packages = ["stack"]
+  revision = "f20d4c4d746f810c9110e21928d4135e1f2a3efa"
+
+[[projects]]
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
   revision = "ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb"
   version = "v0.0.3"
 
 [[projects]]
+  name = "github.com/mitchellh/go-wordwrap"
+  packages = ["."]
+  revision = "9e67c67572bc5dd02aef930e2b0ae3c02a4b5a5c"
+  version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/nsf/termbox-go"
+  packages = ["."]
+  revision = "60ab7e3d12ed91bc1b2486559c4b3a6b62297577"
+
+[[projects]]
   name = "github.com/olekukonko/tablewriter"
   packages = ["."]
   revision = "e6d60cf7ba1f42d86d54cdf5508611c4aafb3970"
   version = "v0.0.1"
+
+[[projects]]
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
+
+[[projects]]
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
+  version = "v1.0.3"
 
 [[projects]]
   branch = "master"
@@ -52,6 +94,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ba6f9e00cbbc990b57e1a53467a985ab67d578d66e9a0c067456afc27a56f010"
+  inputs-digest = "e7fdfa1f3d8a44b30502fac3c6ba55286c8ac0bd4079b96e76bc459c58b0db7d"
   solver-name = "gps-cdcl"
   solver-version = 1

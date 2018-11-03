@@ -18,6 +18,10 @@ func (s *Stream) GetTable(name string) (*Table, error) {
 	return nil, fmt.Errorf("no table named %s", name)
 }
 
+func (s *Stream) GetTables() []*Table {
+	return s.tables
+}
+
 func (s *Stream) AddTable(t *Table) {
 	s.tables = append(s.tables, t)
 }
@@ -33,4 +37,8 @@ func (s *Stream) GetView(name string) (*View, error) {
 		}
 	}
 	return nil, fmt.Errorf("no view named %s", name)
+}
+
+func (s *Stream) GetViews() []*View {
+	return s.views
 }

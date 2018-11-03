@@ -8,21 +8,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type Mapping struct {
+	Name    string   `yaml:"name"`
+	Tables  []string `yaml:"tables"`
+	Queries []struct {
+		Name  string `yaml:"name"`
+		Query string `yaml:"query"`
+	} `yaml:"queries"`
+}
+
 type Configuration struct {
-	Mappings []struct {
-		Name    string   `yaml:"name"`
-		Tables  []string `yaml:"tables"`
-		Queries []struct {
-			Name  string `yaml:"name"`
-			Query string `yaml:"query"`
-		} `yaml:"queries"`
-	} `yaml:"mappings"`
-	fileName string `yaml,omitempty`
+	Mappings []Mapping `yaml:"mappings"`
+	fileURL  string    `yaml:"fileurl"`
 }
 
 func (c *Configuration) ReadFile() error {
 
-	yamlFile, err := ioutil.ReadFile(c.fileName)
+	yamlFile, err := ioutil.ReadFile(c.fileURL)
 	if err != nil {
 		return err
 	}
@@ -51,7 +53,7 @@ func (c *Configuration) Write(file io.Writer) error {
 }
 
 func (c *Configuration) WriteFile() error {
-	f, err := os.Create(c.fileName)
+	f, err := os.Create(c.fileURL)
 	if err != nil {
 		return err
 	}
@@ -60,6 +62,6 @@ func (c *Configuration) WriteFile() error {
 	return c.Write(f)
 }
 
-func (c *Configuration) SetFileName(name string) {
-	c.fileName = name
+func (c *Configuration) SetFileURL(name string) {
+	c.fileURL = name
 }

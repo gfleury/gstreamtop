@@ -29,7 +29,7 @@ func (s *Suite) TestAddField(c *check.C) {
 			},
 		})
 
-	field := table.GetField("f1")
+	field := table.Field("f1")
 	c.Assert(field, check.DeepEquals, &Field{name: "f1", fieldType: INTEGER})
 }
 

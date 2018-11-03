@@ -7,7 +7,7 @@ import (
 )
 
 func TableWrite(v *View, file io.Writer) {
-	data := v.GetAllRows()
+	data := v.FetchAllRows()
 	ptable := tablewriter.NewWriter(file)
 	ptable.SetHeader(data[0])
 	ptable.AppendBulk(data[1:])

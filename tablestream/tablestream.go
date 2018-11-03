@@ -31,7 +31,7 @@ func (t *Table) AddView(v View) error {
 	return nil
 }
 
-func (t *Table) GetField(name string) *Field {
+func (t *Table) Field(name string) *Field {
 	for i, field := range t.fields {
 		if field.name == name {
 			return t.fields[i]
@@ -56,4 +56,8 @@ func (t *Table) AddRow(row string) error {
 		}
 	}
 	return nil
+}
+
+func (t *Table) RowSeparator() string {
+	return t.rowSeparator
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Suite) TestReadConfTest(c *check.C) {
-	s.c.SetFileName("../mapping.yaml")
+	s.c.SetFileURL("../mapping.yaml")
 	err := s.c.ReadFile()
 	c.Assert(err, check.IsNil)
 	err = s.c.Write(os.Stdout)

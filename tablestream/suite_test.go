@@ -58,7 +58,7 @@ func Test(t *testing.T) {
 }
 
 func (s *Suite) TestQuery(c *check.C) {
-	allRows := s.stream.views[0].GetAllRows()
+	allRows := s.stream.views[0].FetchAllRows()
 	c.Assert(allRows[1][0], check.Equals, "/usr/bin/bin")
 	c.Assert(allRows[1][1], check.Equals, "3")
 	c.Assert(allRows[1][2], check.Equals, "789")

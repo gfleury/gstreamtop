@@ -93,7 +93,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 			// return any field as it is considering '*'
 			if deep {
 				fieldName := "*"
-				field := table.GetField(table.fields[0].name)
+				field := table.Field(table.fields[0].name)
 
 				view.AddViewData(&ViewData{
 					field: field,
@@ -107,7 +107,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 			switch selectedExpr := selectedExpr.Expr.(type) {
 			case *sqlparser.ColName:
 				fieldName := selectedExpr.Name.String()
-				field := table.GetField(fieldName)
+				field := table.Field(fieldName)
 
 				viewData := &ViewData{
 					field: field,
@@ -124,7 +124,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 			case *sqlparser.FuncExpr:
 				modfier := selectedExpr.Name.String()
 				fieldName := view.createFieldMapping(selectedExpr.Exprs, table, true)
-				viewData := view.GetViewData(fieldName)
+				viewData := view.ViewData(fieldName)
 				if viewData.name == "" {
 					continue
 				}

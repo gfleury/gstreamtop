@@ -4,5 +4,5 @@ mappings:
   - CREATE TABLE user(gid INTEGER, shell VARCHAR) FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
     LINES TERMINATED BY '\n';
   queries:
-  - name: sumgig
+  - name: sumgid
     query: SELECT shell, COUNT(*), SUM(gid) FROM user GROUP BY shell;

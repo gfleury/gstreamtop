@@ -24,7 +24,7 @@ func (v *View) AddViewData(vd *ViewData) {
 	v.viewData = append(v.viewData, vd)
 }
 
-func (v *View) GetViewData(name string) *ViewData {
+func (v *View) ViewData(name string) *ViewData {
 	for i, viewData := range v.viewData {
 		if viewData.name == name {
 			return v.viewData[i]
@@ -38,7 +38,7 @@ func (v *View) AddTable(t *Table) {
 	t.typeInstance[v.name] = make(chan map[string]string)
 }
 
-func (v *View) GetViewDataByFieldName(name string) []*ViewData {
+func (v *View) ViewDataByFieldName(name string) []*ViewData {
 	viewDatas := []*ViewData{}
 	for i, viewData := range v.viewData {
 		if viewData.field.name == name {
@@ -55,7 +55,7 @@ func (v *View) UpdateView() {
 			case newData := <-table.typeInstance[v.name]:
 				//fmt.Println(newData)
 				for key, value := range newData {
-					for _, viewData := range v.GetViewDataByFieldName(key) {
+					for _, viewData := range v.ViewDataByFieldName(key) {
 						err := viewData.CallUpdateValue(value, newData[v.groupByColumn])
 						if err != nil {
 							fmt.Printf("failed to update value on %s:%s\n", v.name, viewData.name)
@@ -67,7 +67,7 @@ func (v *View) UpdateView() {
 	}
 }
 
-func (v *View) GetIntViewData(idx int) []int {
+func (v *View) IntViewData(idx int) []int {
 	vd := v.viewData[idx]
 	if vd.field.fieldType != INTEGER {
 		return []int{}
@@ -88,7 +88,7 @@ func (v *View) GetIntViewData(idx int) []int {
 	return ret
 }
 
-func (v *View) GetStringViewData(idx int) []string {
+func (v *View) StringViewData(idx int) []string {
 	vd := v.viewData[idx]
 	if vd.field.fieldType != VARCHAR {
 		return []string{}
@@ -109,8 +109,8 @@ func (v *View) GetStringViewData(idx int) []string {
 	return ret
 }
 
-func (v *View) GetAllRows() [][]string {
-	allRows := make([][]string, len(v.viewData)+1)
+func (v *View) FetchAllRows() [][]string {
+	allRows := make([][]string, len(v.viewData[0].data)+1)
 
 	for i, column := range v.viewData {
 		columnName := column.name
@@ -120,13 +120,12 @@ func (v *View) GetAllRows() [][]string {
 		allRows[0] = append(allRows[0], columnName)
 		switch column.field.fieldType {
 		case VARCHAR:
-			data := v.GetStringViewData(i)
-			allRows[i+1] = append(allRows[i+1])
-			for i := range data {
-				allRows[i+1] = append(allRows[i+1], data[i])
+			data := v.StringViewData(i)
+			for j := range data {
+				allRows[j+1] = append(allRows[j+1], data[j])
 			}
 		case INTEGER:
-			data := v.GetIntViewData(i)
+			data := v.IntViewData(i)
 			for i := range data {
 				allRows[i+1] = append(allRows[i+1], fmt.Sprintf("%d", data[i]))
 			}
