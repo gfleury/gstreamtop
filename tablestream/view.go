@@ -82,7 +82,11 @@ func (v *View) IntViewData(idx int) []int {
 	ret := make([]int, len(vd.data))
 
 	for j, key := range keys {
-		ret[j] = vd.data[key].(int)
+		var ok bool
+		ret[j], ok = vd.data[key].(int)
+		if !ok {
+			ret[j] = vd.data[key].(AnalyticFunc).Value()
+		}
 		j++
 	}
 	return ret
