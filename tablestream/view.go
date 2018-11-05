@@ -121,10 +121,7 @@ func (v *View) FetchAllRows() [][]string {
 
 		allRows[0] = append(allRows[0], columnName)
 
-		dataType := column.field.fieldType
-		if column.modifier != "SetValue" {
-			dataType = INTEGER
-		}
+		dataType := column.varType
 
 		switch dataType {
 		case VARCHAR:

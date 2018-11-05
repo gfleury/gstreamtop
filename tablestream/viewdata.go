@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type ViewData struct {
 	table       *Table
 	updateValue reflect.Value
 	modifier    string
+	varType     fieldType
 }
 
 type AnalyticFunc interface {
@@ -21,6 +23,12 @@ type AnalyticFunc interface {
 }
 
 func (v *ViewData) UpdateModifier(mod string) {
+	switch mod {
+	case "COUNT":
+		v.varType = INTEGER
+	default:
+		v.varType = v.field.fieldType
+	}
 	t := reflect.ValueOf(v)
 	m := t.MethodByName(mod)
 	v.updateValue = m
@@ -164,6 +172,22 @@ func (v *ViewData) CallUpdateValue(value interface{}, groupByName string) error 
 	err := result[0].Interface()
 	if err != nil {
 		return err.(error)
+	}
+	return nil
+}
+
+func (v *ViewData) URLIFY(newData interface{}, groupByName string) error {
+	if v.field.fieldType != VARCHAR {
+		return fmt.Errorf("not varchar")
+	}
+	if v.data[groupByName] == nil {
+		v.data[groupByName] = ""
+	}
+	if value, ok := newData.(string); !ok {
+		fmt.Println("Failed to convert URLIFY.")
+		return fmt.Errorf("can't read field")
+	} else {
+		v.data[groupByName] = strings.Split(value, "?")[0]
 	}
 	return nil
 }
