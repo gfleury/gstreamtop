@@ -44,9 +44,9 @@ func (v *ViewData) SUM(newData interface{}, groupByName string) error {
 }
 
 func (v *ViewData) COUNT(newData interface{}, groupByName string) error {
-	if v.field.fieldType != INTEGER {
-		return fmt.Errorf("not integer")
-	}
+	//if v.field.fieldType != INTEGER {
+	//	return fmt.Errorf("not integer")
+	//}
 	if v.data[groupByName] == nil {
 		v.data[groupByName] = 0
 	}

@@ -13,11 +13,11 @@ type SimpleTableOutput struct {
 func (o *SimpleTableOutput) Loop() {
 	pTicker := time.NewTicker(time.Second * 2)
 
-	for {
+	for o.inputExists {
+		<-pTicker.C
 		for _, view := range o.stream.GetViews() {
 			tablestream.TableWrite(view, os.Stdout)
 		}
-		<-pTicker.C
 	}
 
 }

@@ -58,7 +58,7 @@ func (v *View) UpdateView() {
 					for _, viewData := range v.ViewDataByFieldName(key) {
 						err := viewData.CallUpdateValue(value, newData[v.groupByColumn])
 						if err != nil {
-							fmt.Printf("failed to update value on %s:%s\n", v.name, viewData.name)
+							fmt.Printf("failed to update value on %s:%s %s %s\n", v.name, viewData.name, value, err.Error())
 						}
 					}
 				}
@@ -69,9 +69,9 @@ func (v *View) UpdateView() {
 
 func (v *View) IntViewData(idx int) []int {
 	vd := v.viewData[idx]
-	if vd.field.fieldType != INTEGER {
-		return []int{}
-	}
+	// if vd.field.fieldType != INTEGER {
+	// 	return []int{}
+	// }
 
 	keys := make([]string, 0, len(vd.data))
 	for key := range vd.data {
@@ -114,11 +114,15 @@ func (v *View) FetchAllRows() [][]string {
 
 	for i, column := range v.viewData {
 		columnName := column.name
-		if column.modifier != "SetValue" {
-			columnName = fmt.Sprintf("%s(%s)", column.modifier, columnName)
-		}
+
 		allRows[0] = append(allRows[0], columnName)
-		switch column.field.fieldType {
+
+		dataType := column.field.fieldType
+		if column.modifier != "SetValue" {
+			dataType = INTEGER
+		}
+
+		switch dataType {
 		case VARCHAR:
 			data := v.StringViewData(i)
 			for j := range data {

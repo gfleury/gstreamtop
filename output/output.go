@@ -11,18 +11,21 @@ type Outputer interface {
 	Configure() error
 	Stream() *tablestream.Stream
 	ErrorChan() *chan error
+	CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error
+	InputExists() *bool
 }
 
 type StreamOutput struct {
 	Outputer
-	stream *tablestream.Stream
-	errors chan error
+	inputExists bool
+	stream      *tablestream.Stream
+	errors      chan error
 }
 
 func (o *StreamOutput) CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error {
 	o.stream = &tablestream.Stream{}
 	for _, tableDDL := range mapping.Tables {
-		err := o.stream.Query(tableDDL)
+		err := o.Stream().Query(tableDDL)
 		if err != nil {
 			return err
 		}
@@ -45,4 +48,8 @@ func (o *StreamOutput) Stream() *tablestream.Stream {
 
 func (o *StreamOutput) ErrorChan() *chan error {
 	return &o.errors
+}
+
+func (o *StreamOutput) InputExists() *bool {
+	return &o.inputExists
 }

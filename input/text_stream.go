@@ -27,4 +27,5 @@ func (i *StreamInput) Loop(file *os.File) {
 			break
 		}
 	}
+	*i.inputExists = false
 }

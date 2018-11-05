@@ -16,14 +16,17 @@ type Inputer interface {
 
 type StreamInput struct {
 	Inputer
-	stream *tablestream.Stream
-	errors *chan error
+	stream      *tablestream.Stream
+	errors      *chan error
+	inputExists *bool
 }
 
 func CreateStreamInputFromStreamOutput(o output.Outputer) (*StreamInput, error) {
 	i := &StreamInput{}
 	i.stream = o.Stream()
 	i.errors = o.ErrorChan()
+	i.inputExists = o.InputExists()
+	*i.inputExists = true
 	return i, nil
 }
 

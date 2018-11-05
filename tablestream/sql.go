@@ -129,6 +129,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 					continue
 				}
 				viewData.UpdateModifier(modfier)
+				viewData.name = fmt.Sprintf("%s(%s)", modfier, fieldName)
 			}
 		}
 	}

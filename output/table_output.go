@@ -4,7 +4,6 @@ import (
 	"time"
 
 	ui "github.com/gizak/termui"
-	//"github.com/gfleury/gstreamtop/tablestream"
 )
 
 type TableOutput struct {
@@ -15,12 +14,12 @@ type TableOutput struct {
 func (o *TableOutput) Loop() {
 	pTicker := time.NewTicker(time.Second * 2)
 	go func() {
-		for {
+		for o.inputExists {
+			<-pTicker.C
 			for i, view := range o.stream.GetViews() {
 				o.tables[i].Rows = view.FetchAllRows()
 				ui.Render(o.tables[i])
 			}
-			<-pTicker.C
 		}
 	}()
 
