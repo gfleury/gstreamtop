@@ -13,28 +13,27 @@ func (s *Stream) prepareCreate(stmt *sqlparser.DDL) (err error) {
 		return fmt.Errorf("unable to find FIELDS IDENTIFIED by")
 	}
 	t := CreateTable(stmt.NewName.Name.String())
-	optionsTokens := strings.Split(stmt.TableSpec.Options, " ")
-	for i, token := range optionsTokens {
-		switch strings.ToUpper(token) {
-		case "FIELDS":
-			regexIdentifiedBy := regexp.MustCompile(`(?mi)IDENTIFIED BY (?P<regex>('([^']|\\"|\\')*.')|("([^"]|\\"|\\')*."))`)
-			regexMap := regexIdentifiedBy.FindStringSubmatch(stmt.TableSpec.Options)
-			if len(regexMap) < 2 {
-				return fmt.Errorf("no FIELDS IDENTIFIED BY found")
-			}
-			regexMapTrimmed := strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
-			regexMapTrimmed = strings.TrimSuffix(strings.TrimSuffix(regexMapTrimmed, "'"), "\"")
-			t.fieldRegexMap, err = regexp.Compile(regexMapTrimmed)
-			if err != nil {
-				return fmt.Errorf("regex present on FIELDS IDENTIFIED by failed to compile: %s", err.Error())
-			}
 
-		case "LINES":
-			t.rowSeparator = strings.TrimSuffix(strings.TrimPrefix(optionsTokens[i+3], "'"), "'")
-		}
+	// Handle FIELDS IDENTIFIED BY
+	regexIdentifiedBy := regexp.MustCompile(`(?mi)IDENTIFIED BY (?P<regex>('([^']|\\"|\\')*.')|("([^"]|\\"|\\')*."))`)
+	regexMap := regexIdentifiedBy.FindStringSubmatch(stmt.TableSpec.Options)
+	if len(regexMap) < 2 {
+		return fmt.Errorf("no FIELDS IDENTIFIED BY found")
+	}
+	regexMapTrimmed := strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
+	regexMapTrimmed = strings.TrimSuffix(strings.TrimSuffix(regexMapTrimmed, "'"), "\"")
+	t.fieldRegexMap, err = regexp.Compile(regexMapTrimmed)
+	if err != nil {
+		return fmt.Errorf("regex present on FIELDS IDENTIFIED by failed to compile: %s", err.Error())
 	}
 
-	if t.rowSeparator == "" {
+	// Handle LINES TERMINATED BY
+	linesTerminatedBy := regexp.MustCompile(`(?mi)LINES TERMINATED BY (?P<nr>('([^']|\\"|\\')*.')|("([^"]|\\"|\\')*."))`)
+	crMap := linesTerminatedBy.FindStringSubmatch(stmt.TableSpec.Options)
+	if len(crMap) > 1 {
+		t.rowSeparator = strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
+		t.rowSeparator = strings.TrimSuffix(strings.TrimSuffix(t.rowSeparator, "'"), "\"")
+	} else {
 		t.rowSeparator = "\n"
 	}
 

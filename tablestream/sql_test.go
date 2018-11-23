@@ -49,4 +49,7 @@ func (s *Suite) TestPrepareCreate(c *check.C) {
 
 	err = stream.Query("CREATE TABLE test(col2 VARCHAR, col1 VARCHAR) FIELDS IDENTIFIED BY '^(?P<col2>\\S+)\\s(?P<col1>\\S+)$' LINES TERMINATED BY '\n';")
 	c.Assert(err, check.IsNil)
+
+	err = stream.Query("CREATE TABLE test(col2 VARCHAR, col1 VARCHAR) FIELDS IDENTIFIED BY '^(?P<col2>\\S+) (?P<col1>\\S+)$' LINES TERMINATED BY '\n';")
+	c.Assert(err, check.IsNil)
 }
