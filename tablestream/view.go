@@ -13,8 +13,8 @@ type View struct {
 	tables       []*Table
 }
 
-func CreateView(name, groupBy string) *View {
-	view := &View{name: name} //, groupByColumn: groupBy}
+func CreateView(name string) *View {
+	view := &View{name: name}
 	view.viewData = []*ViewData{}
 
 	return view

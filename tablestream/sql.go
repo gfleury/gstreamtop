@@ -67,22 +67,21 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 	if len(stmt.GroupBy) < 1 {
 		return fmt.Errorf("the query should have at least one GROUP BY, for filtering use grep")
 	}
-	groupByStmt := stmt.GroupBy[0]
-	groupByColumn, ok := groupByStmt.(*sqlparser.ColName)
-	var groupBy string
-	if !ok {
-		groupByFunc, ok := groupByStmt.(*sqlparser.FuncExpr)
-		if !ok {
-			return fmt.Errorf("GROUP BY should be collumn name or function")
-		}
-		funcName := groupByFunc.Name.String()
-		groupByColumn = groupByFunc.Exprs[0].(*sqlparser.AliasedExpr).Expr.(*sqlparser.ColName)
-		groupBy = fmt.Sprintf("%s(%s)", funcName, groupByColumn.Name.String())
-	} else {
-		groupBy = groupByColumn.Name.String()
+	groupBy, err := getFieldByStmt(stmt.GroupBy[0])
+	if err != nil {
+		return err
 	}
 
-	view := CreateView(fmt.Sprintf("%v", stmt), groupBy)
+	// TODO Handle more than one ORDER BY
+	var orderBy string
+	if len(stmt.OrderBy) > 0 {
+		orderBy, err = getFieldByStmt(stmt.OrderBy[0])
+		if err != nil {
+			return err
+		}
+	}
+
+	view := CreateView(fmt.Sprintf("%v", stmt))
 
 	_, err = view.createFieldMapping(stmt.SelectExprs, table, false)
 	if err != nil {
@@ -91,7 +90,14 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 
 	groupByFields := view.ViewDataByName(groupBy)
 	if len(groupByFields) < 1 {
-		return fmt.Errorf("GROUP BY column not found")
+		return fmt.Errorf("GROUP BY column %s not found", groupBy)
+	}
+
+	if orderBy != "" {
+		orderByFields := view.ViewDataByName(orderBy)
+		if len(orderByFields) < 1 {
+			return fmt.Errorf("ORDER BY column %s not found", orderBy)
+		}
 	}
 
 	// TODO Handle more than one GROUP BY
@@ -107,6 +113,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 
 	view.AddTable(table)
 	s.AddView(view)
+
 	go view.UpdateView()
 	return nil
 }
@@ -193,4 +200,24 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 		}
 	}
 	return fieldName, err
+}
+
+func getFieldByStmt(stmt interface{}) (fieldName string, _ error) {
+	column, ok := stmt.(*sqlparser.ColName)
+	if !ok {
+		funcExpr, ok := stmt.(*sqlparser.FuncExpr)
+		if !ok {
+			orderExpr, ok := stmt.(*sqlparser.Order)
+			if !ok {
+				return fieldName, fmt.Errorf("GROUP BY should be collumn name or function")
+			}
+			return getFieldByStmt(orderExpr.Expr)
+		}
+		funcName := funcExpr.Name.String()
+		column = funcExpr.Exprs[0].(*sqlparser.AliasedExpr).Expr.(*sqlparser.ColName)
+		fieldName = fmt.Sprintf("%s(%s)", funcName, column.Name.String())
+	} else {
+		fieldName = column.Name.String()
+	}
+	return fieldName, nil
 }

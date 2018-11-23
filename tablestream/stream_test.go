@@ -21,7 +21,7 @@ func (s *Suite) TestAddTable(c *check.C) {
 }
 
 func (s *Suite) TestAddView(c *check.C) {
-	view := CreateView("testview", "gby")
+	view := CreateView("testview")
 	s.stream.AddView(view)
 
 	viewGot, err := s.stream.GetView("testview")
