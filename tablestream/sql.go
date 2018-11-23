@@ -24,8 +24,6 @@ func (s *Stream) prepareCreate(stmt *sqlparser.DDL) (err error) {
 			}
 			regexMapTrimmed := strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
 			regexMapTrimmed = strings.TrimSuffix(strings.TrimSuffix(regexMapTrimmed, "'"), "\"")
-			fmt.Println(regexMap[1])
-			fmt.Println(regexMapTrimmed)
 			t.fieldRegexMap, err = regexp.Compile(regexMapTrimmed)
 			if err != nil {
 				return fmt.Errorf("regex present on FIELDS IDENTIFIED by failed to compile: %s", err.Error())
