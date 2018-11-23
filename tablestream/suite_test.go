@@ -13,8 +13,8 @@ type Suite struct {
 
 func (s *Suite) SetUpSuite(c *check.C) {
 	query := `CREATE TABLE user(gid INTEGER, shell VARCHAR)
-		 	      FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
-						LINES TERMINATED BY '\n';`
+	FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
+	LINES TERMINATED BY '\n';`
 
 	s.stream = &Stream{}
 

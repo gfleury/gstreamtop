@@ -8,7 +8,7 @@ import (
 	"github.com/xwb1989/sqlparser"
 )
 
-func (s *Stream) prepareCreate(stmt *sqlparser.DDL) error {
+func (s *Stream) prepareCreate(stmt *sqlparser.DDL) (err error) {
 	if !strings.Contains(stmt.TableSpec.Options, "FIELDS IDENTIFIED by ") {
 		return fmt.Errorf("unable to find FIELDS IDENTIFIED by")
 	}
@@ -17,8 +17,16 @@ func (s *Stream) prepareCreate(stmt *sqlparser.DDL) error {
 	for i, token := range optionsTokens {
 		switch strings.ToUpper(token) {
 		case "FIELDS":
-			var err error
-			t.fieldRegexMap, err = regexp.Compile(strings.TrimSuffix(strings.TrimPrefix(optionsTokens[i+3], "'"), "'"))
+			regexIdentifiedBy := regexp.MustCompile(`(?mi)IDENTIFIED BY (?P<regex>('([^']|\\"|\\')*.')|("([^"]|\\"|\\')*."))`)
+			regexMap := regexIdentifiedBy.FindStringSubmatch(stmt.TableSpec.Options)
+			if len(regexMap) < 2 {
+				return fmt.Errorf("no FIELDS IDENTIFIED BY found")
+			}
+			regexMapTrimmed := strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
+			regexMapTrimmed = strings.TrimSuffix(strings.TrimSuffix(regexMapTrimmed, "'"), "\"")
+			fmt.Println(regexMap[1])
+			fmt.Println(regexMapTrimmed)
+			t.fieldRegexMap, err = regexp.Compile(regexMapTrimmed)
 			if err != nil {
 				return fmt.Errorf("regex present on FIELDS IDENTIFIED by failed to compile: %s", err.Error())
 			}
@@ -57,12 +65,49 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO Handle more than one GROUP BY
 	if len(stmt.GroupBy) < 1 {
 		return fmt.Errorf("the query should have at least one GROUP BY, for filtering use grep")
 	}
-	groupBy := stmt.GroupBy[0].(*sqlparser.ColName).Name.String()
+	groupByStmt := stmt.GroupBy[0]
+	groupByColumn, ok := groupByStmt.(*sqlparser.ColName)
+	var groupBy string
+	if !ok {
+		groupByFunc, ok := groupByStmt.(*sqlparser.FuncExpr)
+		if !ok {
+			return fmt.Errorf("GROUP BY should be collumn name or function")
+		}
+		funcName := groupByFunc.Name.String()
+		groupByColumn = groupByFunc.Exprs[0].(*sqlparser.AliasedExpr).Expr.(*sqlparser.ColName)
+		groupBy = fmt.Sprintf("%s(%s)", funcName, groupByColumn.Name.String())
+	} else {
+		groupBy = groupByColumn.Name.String()
+	}
+
 	view := CreateView(fmt.Sprintf("%v", stmt), groupBy)
-	view.createFieldMapping(stmt.SelectExprs, table, false)
+
+	_, err = view.createFieldMapping(stmt.SelectExprs, table, false)
+	if err != nil {
+		return err
+	}
+
+	groupByFields := view.ViewDataByName(groupBy)
+	if len(groupByFields) < 1 {
+		return fmt.Errorf("GROUP BY column not found")
+	}
+
+	// TODO Handle more than one GROUP BY
+	groupByField := groupByFields[0]
+	view.groupByField = &ViewData{
+		data:        make(map[string]interface{}),
+		field:       groupByField.field,
+		modifier:    groupByField.modifier,
+		name:        groupByField.name,
+		updateValue: groupByField.updateValue,
+		varType:     groupByField.varType,
+	}
+
 	view.AddTable(table)
 	s.AddView(view)
 	go view.UpdateView()
@@ -84,7 +129,7 @@ func (s *Stream) Query(query string) error {
 	return err
 }
 
-func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *Table, deep bool) string {
+func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *Table, deep bool) (fieldName string, err error) {
 
 	for _, selectedExpr := range selectedExpr {
 
@@ -92,7 +137,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 		case *sqlparser.StarExpr:
 			// return any field as it is considering '*'
 			if deep {
-				fieldName := "*"
+				fieldName = "*"
 				field := table.Field(table.fields[0].name)
 
 				view.AddViewData(&ViewData{
@@ -100,38 +145,55 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 					name:  fieldName,
 					data:  make(map[string]interface{}),
 				})
-				return "*"
+				return fieldName, err
 			}
 
 		case *sqlparser.AliasedExpr:
+
+			asFieldName := selectedExpr.As.String()
+
 			switch selectedExpr := selectedExpr.Expr.(type) {
 			case *sqlparser.ColName:
 				fieldName := selectedExpr.Name.String()
 				field := table.Field(fieldName)
+
+				if asFieldName != "" {
+					fieldName = asFieldName
+				}
 
 				viewData := &ViewData{
 					field: field,
 					name:  fieldName,
 					data:  make(map[string]interface{}),
 				}
-				viewData.UpdateModifier("SetValue")
+				err = viewData.UpdateModifier("SetValue")
 				view.AddViewData(viewData)
 
 				if deep {
-					return fieldName
+					return fieldName, err
 				}
 
 			case *sqlparser.FuncExpr:
 				modfier := selectedExpr.Name.String()
-				fieldName := view.createFieldMapping(selectedExpr.Exprs, table, true)
+				fieldName, err = view.createFieldMapping(selectedExpr.Exprs, table, true)
 				viewData := view.ViewData(fieldName)
 				if viewData.name == "" {
 					continue
 				}
-				viewData.UpdateModifier(modfier)
-				viewData.name = fmt.Sprintf("%s(%s)", modfier, fieldName)
+
+				err = viewData.UpdateModifier(modfier)
+				if err != nil {
+					return fieldName, err
+				}
+
+				if asFieldName != "" {
+					viewData.name = asFieldName
+				} else {
+					viewData.name = fmt.Sprintf("%s(%s)", modfier, fieldName)
+				}
+
 			}
 		}
 	}
-	return ""
+	return fieldName, err
 }

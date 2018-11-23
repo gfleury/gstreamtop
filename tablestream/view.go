@@ -7,14 +7,14 @@ import (
 )
 
 type View struct {
-	name          string
-	viewData      []*ViewData
-	groupByColumn string
-	tables        []*Table
+	name         string
+	viewData     []*ViewData
+	groupByField *ViewData
+	tables       []*Table
 }
 
 func CreateView(name, groupBy string) *View {
-	view := &View{name: name, groupByColumn: groupBy}
+	view := &View{name: name} //, groupByColumn: groupBy}
 	view.viewData = []*ViewData{}
 
 	return view
@@ -48,15 +48,26 @@ func (v *View) ViewDataByFieldName(name string) []*ViewData {
 	return viewDatas
 }
 
+func (v *View) ViewDataByName(name string) []*ViewData {
+	viewDatas := []*ViewData{}
+	for i, viewData := range v.viewData {
+		if viewData.name == name {
+			viewDatas = append(viewDatas, v.viewData[i])
+		}
+	}
+	return viewDatas
+}
+
 func (v *View) UpdateView() {
 	for {
 		for _, table := range v.tables {
 			select {
 			case newData := <-table.typeInstance[v.name]:
 				//fmt.Println(newData)
+				groupBy, _ := v.groupByField.CallUpdateValue(newData[v.groupByField.field.name], "")
 				for key, value := range newData {
 					for _, viewData := range v.ViewDataByFieldName(key) {
-						err := viewData.CallUpdateValue(value, newData[v.groupByColumn])
+						_, err := viewData.CallUpdateValue(value, groupBy.(string)) //newData[v.groupByColumn])
 						if err != nil {
 							fmt.Printf("failed to update value on %s:%s %s %s\n", v.name, viewData.name, value, err.Error())
 						}

@@ -53,7 +53,7 @@ func (s *Suite) TestQueryCreateTableWithoutRegexMapping(c *check.C) {
 
 func (s *Suite) TestQueryCreateTableWithWrongRegexMapping(c *check.C) {
 	query := `CREATE TABLE user(gid INTEGER, shell VARCHAR)
-						FIELDS IDENTIFIED BY '(Invalidxxx regexppp?d>[09]+):.*:(l>.[^:]*)$'
+						FIELDS IDENTIFIED BY ')(Invalidxxx regexppp?d>[09]+):.*:(l>.[^:]*)$'
 						LINES TERMINATED BY '\n';`
 	err := s.stream.Query(query)
 
