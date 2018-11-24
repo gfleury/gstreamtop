@@ -75,7 +75,7 @@ func (v *View) UpdateView() {
 					for _, viewData := range v.ViewDataByFieldName(key) {
 						_, err := viewData.CallUpdateValue(value, groupBy.(string)) //newData[v.groupByColumn])
 						if err != nil {
-							fmt.Printf("failed to update value on %s:%s %s %s\n", v.name, viewData.name, value, err.Error())
+							viewData.field.AddError(fmt.Errorf("failed to update value on %s:%s %s %s\n", v.name, viewData.name, value, err.Error()))
 						}
 					}
 				}
