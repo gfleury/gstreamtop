@@ -20,9 +20,16 @@ func (s *Suite) TestPrepareSelectGroupBy(c *check.C) {
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY urly;",
 	}
 
-	for _, query := range queries {
+	groupBy := []string{
+		"URLIFY(url)",
+		"url",
+		"urly",
+	}
+
+	for i, query := range queries {
 		err = stream.Query(query)
 		c.Assert(err, check.IsNil)
+		c.Assert(stream.GetViews()[i].groupByField.name, check.Equals, groupBy[i])
 	}
 
 	queriesFail := []string{
@@ -67,11 +74,23 @@ func (s *Suite) TestPrepareSelectOrderBy(c *check.C) {
 
 	queries := []string{
 		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url) ORDER BY SUM(size);",
+		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response), size FROM log GROUP BY URLIFY(url) ORDER BY log.size;",
+		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response), size FROM log GROUP BY URLIFY(url) ORDER BY log.size ASC;",
+		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response), size FROM log GROUP BY URLIFY(url) ORDER BY log.size DESC;",
 	}
 
-	for _, query := range queries {
+	orderBy := [][]string{
+		{"SUM(size)", "asc"},
+		{"size", "asc"},
+		{"size", "asc"},
+		{"size", "desc"},
+	}
+
+	for i, query := range queries {
 		err = stream.Query(query)
 		c.Assert(err, check.IsNil)
+		c.Assert(stream.GetViews()[i].orderBy.orderByField.name, check.Equals, orderBy[i][0])
+		c.Assert(stream.GetViews()[i].orderBy.direction, check.Equals, orderBy[i][1])
 	}
 
 	queriesFail := []string{
@@ -88,4 +107,30 @@ func (s *Suite) TestPrepareSelectOrderBy(c *check.C) {
 		err = stream.Query(query)
 		c.Assert(err, check.ErrorMatches, queriesErrors[i])
 	}
+}
+
+// LIMIT
+func (s *Suite) TestPrepareSelectLimit(c *check.C) {
+	stream := Stream{}
+
+	err := stream.Query(`CREATE TABLE log(ip VARCHAR, col2 VARCHAR, col3 VARCHAR,
+		dt VARCHAR, method VARCHAR, url VARCHAR, version VARCHAR, 
+		response INTEGER, size INTEGER, col10 VARCHAR, useragent VARCHAR)
+		FIELDS IDENTIFIED BY '^(?P<ip>\\S+)\\s(?P<col2>\\S+)\\s(?P<col3>\\S+)\\s\\[(?P<dt>[\\w:\\/]+\\s[+\\-]\\d{4})\\]\\s"(?P<method>\\S+)\\s?(?P<url>\\S+)?\\s?(?P<version>\\S+)?"\\s(?P<response>\\d{3}|-)\\s(?P<size>\\d+|-)\\s?"?(?P<col10>[^"]*)"?\\s?"?(?P<useragent>[^"]*)?"?$'
+		LINES TERMINATED BY '\n';`)
+	c.Assert(err, check.IsNil)
+
+	queries := []string{
+		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url) LIMIT 10;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY urly LIMIT 5;",
+	}
+
+	limits := []int{10, 5}
+
+	for i, query := range queries {
+		err = stream.Query(query)
+		c.Assert(err, check.IsNil)
+		c.Assert(stream.GetViews()[i].limit, check.Equals, limits[i])
+	}
+
 }

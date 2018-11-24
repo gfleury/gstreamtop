@@ -15,5 +15,5 @@ mappings:
     LINES TERMINATED BY '\n';
   queries:
   - name: responsebyurl
-    query: SELECT URLIFY(url) as url, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY url;
+    query: SELECT URLIFY(url) as url, COUNT(*) as count, SUM(size), AVG(size), MAX(response) FROM log GROUP BY url ORDER BY count LIMIT 10;
 

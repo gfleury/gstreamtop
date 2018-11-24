@@ -3,6 +3,7 @@ package tablestream
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/xwb1989/sqlparser"
@@ -62,26 +63,36 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO Handle more than one GROUP BY
-	if len(stmt.GroupBy) < 1 {
-		return fmt.Errorf("the query should have at least one GROUP BY, for filtering use grep")
-	}
-	groupBy, err := getFieldByStmt(stmt.GroupBy[0])
-	if err != nil {
-		return err
-	}
-
-	// TODO Handle more than one ORDER BY
-	var orderBy string
-	if len(stmt.OrderBy) > 0 {
-		orderBy, err = getFieldByStmt(stmt.OrderBy[0])
+	// Handle LIMIT
+	limit := 0
+	if stmt.Limit != nil {
+		limit, err = getLimit(stmt.Limit)
 		if err != nil {
 			return err
 		}
 	}
 
-	view := CreateView(fmt.Sprintf("%v", stmt))
+	// TODO Handle more than one GROUP BY
+	if len(stmt.GroupBy) < 1 {
+		return fmt.Errorf("the query should have at least one GROUP BY, for filtering use grep")
+	}
+	groupBy, _, err := getFieldByStmt(stmt.GroupBy[0])
+	if err != nil {
+		return err
+	}
+
+	// TODO Handle more than one ORDER BY
+	var orderBy, direction string
+	if len(stmt.OrderBy) > 0 {
+		orderBy, direction, err = getFieldByStmt(stmt.OrderBy[0])
+		if err != nil {
+			return err
+		}
+	}
+
+	buf := sqlparser.NewTrackedBuffer(nil)
+	stmt.Format(buf)
+	view := CreateView(buf.String())
 
 	_, err = view.createFieldMapping(stmt.SelectExprs, table, false)
 	if err != nil {
@@ -98,18 +109,11 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		if len(orderByFields) < 1 {
 			return fmt.Errorf("ORDER BY column %s not found", orderBy)
 		}
+		view.SetOrderBy(orderByFields, direction)
 	}
 
-	// TODO Handle more than one GROUP BY
-	groupByField := groupByFields[0]
-	view.groupByField = &ViewData{
-		data:        make(map[string]interface{}),
-		field:       groupByField.field,
-		modifier:    groupByField.modifier,
-		name:        groupByField.name,
-		updateValue: groupByField.updateValue,
-		varType:     groupByField.varType,
-	}
+	view.SetGroupBy(groupByFields)
+	view.SetLimit(limit)
 
 	view.AddTable(table)
 	s.AddView(view)
@@ -202,16 +206,18 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 	return fieldName, err
 }
 
-func getFieldByStmt(stmt interface{}) (fieldName string, _ error) {
+func getFieldByStmt(stmt interface{}) (fieldName, extra string, _ error) {
 	column, ok := stmt.(*sqlparser.ColName)
 	if !ok {
 		funcExpr, ok := stmt.(*sqlparser.FuncExpr)
 		if !ok {
 			orderExpr, ok := stmt.(*sqlparser.Order)
 			if !ok {
-				return fieldName, fmt.Errorf("GROUP BY should be collumn name or function")
+				return fieldName, extra, fmt.Errorf("ORDER BY should be collumn name or function")
 			}
-			return getFieldByStmt(orderExpr.Expr)
+			extra = orderExpr.Direction
+			fieldName, _, err := getFieldByStmt(orderExpr.Expr)
+			return fieldName, extra, err
 		}
 		funcName := funcExpr.Name.String()
 		column = funcExpr.Exprs[0].(*sqlparser.AliasedExpr).Expr.(*sqlparser.ColName)
@@ -219,5 +225,22 @@ func getFieldByStmt(stmt interface{}) (fieldName string, _ error) {
 	} else {
 		fieldName = column.Name.String()
 	}
-	return fieldName, nil
+	return fieldName, extra, nil
+}
+
+func getLimit(stmt interface{}) (limit int, err error) {
+	limitStmt, ok := stmt.(*sqlparser.Limit)
+	if ok {
+		limitValue, ok := limitStmt.Rowcount.(*sqlparser.SQLVal)
+		if ok {
+			return fromSQLValToInt(limitValue)
+		}
+	}
+	return limit, fmt.Errorf("No LIMIT FOUND")
+}
+
+func fromSQLValToInt(sqlVal *sqlparser.SQLVal) (limit int, err error) {
+	limitStr := string(sqlVal.Val)
+	limit, err = strconv.Atoi(limitStr)
+	return limit, err
 }
