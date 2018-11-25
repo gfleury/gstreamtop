@@ -72,7 +72,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		}
 	}
 
-	// TODO Handle more than one GROUP BY
+	// TODO Handle more than one column in GROUP BY
 	if len(stmt.GroupBy) < 1 {
 		return fmt.Errorf("the query should have at least one GROUP BY, for filtering use grep")
 	}
@@ -81,7 +81,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		return err
 	}
 
-	// TODO Handle more than one ORDER BY
+	// TODO Handle more than one column in ORDER BY
 	var orderBy, direction string
 	if len(stmt.OrderBy) > 0 {
 		orderBy, direction, err = getFieldByStmt(stmt.OrderBy[0])
@@ -207,6 +207,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 }
 
 func getFieldByStmt(stmt interface{}) (fieldName, extra string, _ error) {
+	var columnName string
 	column, ok := stmt.(*sqlparser.ColName)
 	if !ok {
 		funcExpr, ok := stmt.(*sqlparser.FuncExpr)
@@ -220,8 +221,18 @@ func getFieldByStmt(stmt interface{}) (fieldName, extra string, _ error) {
 			return fieldName, extra, err
 		}
 		funcName := funcExpr.Name.String()
-		column = funcExpr.Exprs[0].(*sqlparser.AliasedExpr).Expr.(*sqlparser.ColName)
-		fieldName = fmt.Sprintf("%s(%s)", funcName, column.Name.String())
+		aliasedColumn, ok := funcExpr.Exprs[0].(*sqlparser.AliasedExpr)
+		if !ok {
+			_, ok := funcExpr.Exprs[0].(*sqlparser.StarExpr)
+			if !ok {
+				return fieldName, extra, fmt.Errorf("ORDER BY should be EXISTENT collumn name or function")
+			}
+			columnName = "*"
+		} else {
+			column = aliasedColumn.Expr.(*sqlparser.ColName)
+			columnName = column.Name.String()
+		}
+		fieldName = fmt.Sprintf("%s(%s)", funcName, columnName)
 	} else {
 		fieldName = column.Name.String()
 	}

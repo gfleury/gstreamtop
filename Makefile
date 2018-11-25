@@ -6,3 +6,7 @@ default:
 test:
 	go clean $(PKGS)
 	go test $(PKGS) -check.v
+
+race:
+	go clean $(PKGS)
+	go test -race $(PKGS) -check.v

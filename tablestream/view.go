@@ -41,7 +41,9 @@ func (v *View) ViewData(name string) *ViewData {
 
 func (v *View) AddTable(t *Table) {
 	v.tables = append(v.tables, t)
+	t.Lock()
 	t.typeInstance[v.name] = make(chan map[string]string)
+	t.Unlock()
 }
 
 func (v *View) ViewDataByFieldName(name string) []*ViewData {
@@ -67,8 +69,11 @@ func (v *View) ViewDataByName(name string) []*ViewData {
 func (v *View) UpdateView() {
 	for {
 		for _, table := range v.tables {
+			table.Lock()
+			tableChan := table.typeInstance[v.name]
+			table.Unlock()
 			select {
-			case newData := <-table.typeInstance[v.name]:
+			case newData := <-tableChan:
 				//fmt.Println(newData)
 				groupBy, _ := v.groupByField.CallUpdateValue(newData[v.groupByField.field.name], "")
 				for key, value := range newData {
@@ -95,8 +100,8 @@ func (v *View) IntViewData(idx int, keys []string) []int {
 	// 	keys = append(keys, key)
 	// }
 	// sort.Strings(keys)
-
-	ret := make([]int, len(vd.data))
+	rowNumber := vd.Length()
+	ret := make([]int, rowNumber)
 
 	for j, key := range keys {
 		var ok bool
@@ -120,8 +125,8 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 	// 	keys = append(keys, key)
 	// }
 	// sort.Strings(keys)
-
-	ret := make([]string, len(vd.data))
+	rowNumber := vd.Length()
+	ret := make([]string, rowNumber)
 
 	for j, key := range keys {
 		ret[j] = vd.data[key].(string)
@@ -131,7 +136,9 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 }
 
 func (v *View) FetchAllRows() [][]string {
-	allRows := make([][]string, len(v.viewData[0].data)+1)
+	rowNumber := v.viewData[0].Length()
+
+	allRows := make([][]string, rowNumber+1)
 
 	orderedKeys := v.OrderedKeys()
 
@@ -205,7 +212,8 @@ func (v *View) OrderedKeys() []string {
 		}
 	}
 
-	keys := make([]kv, 0, len(vd.data))
+	rowNumber := vd.Length()
+	keys := make([]kv, 0, rowNumber)
 	for key := range vd.data {
 		keys = append(keys, kv{key, vd.data[key]})
 	}

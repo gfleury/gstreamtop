@@ -73,6 +73,7 @@ func (s *Suite) TestPrepareSelectOrderBy(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	queries := []string{
+		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url) ORDER BY COUNT(*);",
 		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url) ORDER BY SUM(size);",
 		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response), size FROM log GROUP BY URLIFY(url) ORDER BY log.size;",
 		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response), size FROM log GROUP BY URLIFY(url) ORDER BY log.size ASC;",
@@ -80,6 +81,7 @@ func (s *Suite) TestPrepareSelectOrderBy(c *check.C) {
 	}
 
 	orderBy := [][]string{
+		{"COUNT(*)", "asc"},
 		{"SUM(size)", "asc"},
 		{"size", "asc"},
 		{"size", "asc"},

@@ -13,13 +13,14 @@ type Outputer interface {
 	ErrorChan() *chan error
 	CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error
 	InputExists() *bool
+	SetInputExists(func() *bool)
 }
 
 type StreamOutput struct {
 	Outputer
-	inputExists bool
 	stream      *tablestream.Stream
 	errors      chan error
+	inputExists func() *bool
 }
 
 func (o *StreamOutput) CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error {
@@ -50,6 +51,10 @@ func (o *StreamOutput) ErrorChan() *chan error {
 	return &o.errors
 }
 
+func (o *StreamOutput) SetInputExists(inputExists func() *bool) {
+	o.inputExists = inputExists
+}
+
 func (o *StreamOutput) InputExists() *bool {
-	return &o.inputExists
+	return o.inputExists()
 }

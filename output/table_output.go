@@ -14,7 +14,7 @@ type TableOutput struct {
 func (o *TableOutput) Loop() {
 	pTicker := time.NewTicker(time.Second * 2)
 	go func() {
-		for o.inputExists {
+		for *o.InputExists() {
 			<-pTicker.C
 			for i, view := range o.stream.GetViews() {
 				o.tables[i].Rows = view.FetchAllRows()

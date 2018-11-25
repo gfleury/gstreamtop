@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"sync/atomic"
 )
 
 func (i *StreamInput) Configure() error {
@@ -27,5 +28,5 @@ func (i *StreamInput) Loop(file *os.File) {
 			break
 		}
 	}
-	*i.inputExists = false
+	atomic.StoreInt32(&i.inputExists, 0)
 }

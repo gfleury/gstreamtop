@@ -2,6 +2,7 @@ package tablestream
 
 import (
 	"regexp"
+	"sync"
 )
 
 type Table struct {
@@ -11,6 +12,7 @@ type Table struct {
 	rowSeparator  string
 	typeInstance  map[string]chan map[string]string
 	viewsIncluded []View
+	lock          sync.Mutex
 }
 
 func CreateTable(name string) *Table {
@@ -60,4 +62,12 @@ func (t *Table) AddRow(row string) error {
 
 func (t *Table) RowSeparator() string {
 	return t.rowSeparator
+}
+
+func (t *Table) Lock() {
+	t.lock.Lock()
+}
+
+func (t *Table) Unlock() {
+	t.lock.Unlock()
 }

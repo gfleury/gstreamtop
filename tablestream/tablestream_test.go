@@ -2,7 +2,7 @@ package tablestream
 
 import (
 	"regexp"
-	"time"
+	"sync"
 
 	"gopkg.in/check.v1"
 )
@@ -47,8 +47,11 @@ func (s *Suite) TestAddRow(c *check.C) {
 	table.typeInstance["view1"] = make(chan map[string]string)
 
 	var msg map[string]string
+	var mmutex sync.Mutex
 
 	go func() {
+		mmutex.Lock()
+		defer mmutex.Unlock()
 		for {
 			for _, j := range table.typeInstance {
 				select {
@@ -62,9 +65,8 @@ func (s *Suite) TestAddRow(c *check.C) {
 
 	table.AddRow("name1,surname1,surname11,1010,1111,3333, blew")
 
-	for msg == nil {
-		time.Sleep(time.Second)
-	}
+	mmutex.Lock()
+	defer mmutex.Unlock()
 
 	c.Assert(msg, check.DeepEquals, map[string]string{
 		"f1": "name1",
