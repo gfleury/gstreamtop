@@ -164,7 +164,9 @@ func (v *ViewData) SetValue(newData interface{}, groupByName string) (interface{
 	}
 }
 
-func (v *ViewData) fetch() map[string]interface{} {
+func (v *ViewData) FetchAll() map[string]interface{} {
+	v.Lock()
+	defer v.Unlock()
 	for v.data == nil {
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -218,4 +220,25 @@ func (v *ViewData) Length() int {
 	v.Lock()
 	defer v.Unlock()
 	return len(v.data)
+}
+
+func (v *ViewData) Fetch(key string) interface{} {
+	v.Lock()
+	defer v.Unlock()
+	return v.data[key]
+}
+
+type kv struct {
+	Key   string
+	Value interface{}
+}
+
+func (v *ViewData) KeyArray() []kv {
+	rowNumber := v.Length()
+	keys := make([]kv, 0, rowNumber)
+
+	for key, value := range v.FetchAll() {
+		keys = append(keys, kv{key, value})
+	}
+	return keys
 }

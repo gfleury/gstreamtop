@@ -11,5 +11,6 @@ env:
   matrix:
     - JOB=test
     - JOB=race
+    - JOB=default
 jobs:
   fast_finish: true

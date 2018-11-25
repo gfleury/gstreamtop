@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"sync"
 )
 
 type View struct {
@@ -16,6 +17,7 @@ type View struct {
 	}
 	tables []*Table
 	limit  int
+	lock   sync.Mutex
 }
 
 func CreateView(name string) *View {
@@ -75,6 +77,7 @@ func (v *View) UpdateView() {
 			select {
 			case newData := <-tableChan:
 				//fmt.Println(newData)
+				v.lock.Lock()
 				groupBy, _ := v.groupByField.CallUpdateValue(newData[v.groupByField.field.name], "")
 				for key, value := range newData {
 					for _, viewData := range v.ViewDataByFieldName(key) {
@@ -84,6 +87,7 @@ func (v *View) UpdateView() {
 						}
 					}
 				}
+				v.lock.Unlock()
 			}
 		}
 	}
@@ -91,23 +95,15 @@ func (v *View) UpdateView() {
 
 func (v *View) IntViewData(idx int, keys []string) []int {
 	vd := v.viewData[idx]
-	// if vd.field.fieldType != INTEGER {
-	// 	return []int{}
-	// }
 
-	// keys := make([]string, 0, len(vd.data))
-	// for key := range vd.data {
-	// 	keys = append(keys, key)
-	// }
-	// sort.Strings(keys)
 	rowNumber := vd.Length()
 	ret := make([]int, rowNumber)
 
 	for j, key := range keys {
 		var ok bool
-		ret[j], ok = vd.data[key].(int)
+		ret[j], ok = vd.Fetch(key).(int)
 		if !ok {
-			ret[j] = vd.data[key].(AnalyticFunc).Value()
+			ret[j] = vd.Fetch(key).(AnalyticFunc).Value()
 		}
 		j++
 	}
@@ -120,22 +116,20 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 		return []string{}
 	}
 
-	// keys := make([]string, 0, len(vd.data))
-	// for key := range vd.data {
-	// 	keys = append(keys, key)
-	// }
-	// sort.Strings(keys)
 	rowNumber := vd.Length()
 	ret := make([]string, rowNumber)
 
 	for j, key := range keys {
-		ret[j] = vd.data[key].(string)
+		ret[j] = vd.Fetch(key).(string)
 		j++
 	}
 	return ret
 }
 
 func (v *View) FetchAllRows() [][]string {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	rowNumber := v.viewData[0].Length()
 
 	allRows := make([][]string, rowNumber+1)
@@ -163,7 +157,7 @@ func (v *View) FetchAllRows() [][]string {
 		}
 	}
 
-	if v.limit == 0 {
+	if v.limit == 0 || rowNumber == 0 {
 		return allRows
 	}
 
@@ -199,10 +193,6 @@ func (v *View) SetGroupBy(groupByFields []*ViewData) {
 }
 
 func (v *View) OrderedKeys() []string {
-	type kv struct {
-		Key   string
-		Value interface{}
-	}
 
 	vd := v.viewData[0]
 
@@ -212,11 +202,7 @@ func (v *View) OrderedKeys() []string {
 		}
 	}
 
-	rowNumber := vd.Length()
-	keys := make([]kv, 0, rowNumber)
-	for key := range vd.data {
-		keys = append(keys, kv{key, vd.data[key]})
-	}
+	keys := vd.KeyArray()
 
 	ascOrder := true
 	if v.orderBy.direction != "asc" {
