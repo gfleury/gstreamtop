@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -17,7 +16,6 @@ type ViewData struct {
 	updateValue reflect.Value
 	modifier    string
 	varType     fieldType
-	lock        sync.Mutex
 }
 
 type AnalyticFunc interface {
@@ -165,8 +163,6 @@ func (v *ViewData) SetValue(newData interface{}, groupByName string) (interface{
 }
 
 func (v *ViewData) FetchAll() map[string]interface{} {
-	v.Lock()
-	defer v.Unlock()
 	for v.data == nil {
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -174,8 +170,6 @@ func (v *ViewData) FetchAll() map[string]interface{} {
 }
 
 func (v *ViewData) CallUpdateValue(value interface{}, groupByName string) (interface{}, error) {
-	v.Lock()
-	defer v.Unlock()
 	result := v.updateValue.Call([]reflect.Value{reflect.ValueOf(value), reflect.ValueOf(groupByName)})
 	err := result[1].Interface()
 	if err != nil {
@@ -208,23 +202,11 @@ func setIfGroupByNotEmpty(value interface{}, data map[string]interface{}, groupB
 	return data[groupByName], nil
 }
 
-func (v *ViewData) Lock() {
-	v.lock.Lock()
-}
-
-func (v *ViewData) Unlock() {
-	v.lock.Unlock()
-}
-
 func (v *ViewData) Length() int {
-	v.Lock()
-	defer v.Unlock()
 	return len(v.data)
 }
 
 func (v *ViewData) Fetch(key string) interface{} {
-	v.Lock()
-	defer v.Unlock()
 	return v.data[key]
 }
 
