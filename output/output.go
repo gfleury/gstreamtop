@@ -3,7 +3,9 @@ package output
 import (
 	"fmt"
 	"github.com/gfleury/gstreamtop/conf"
+	"github.com/gfleury/gstreamtop/profiling"
 	"github.com/gfleury/gstreamtop/tablestream"
+	"time"
 )
 
 type Outputer interface {
@@ -14,6 +16,8 @@ type Outputer interface {
 	CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error
 	InputExists() *bool
 	SetInputExists(func() *bool)
+	EnableProfile()
+	Profile() bool
 }
 
 type StreamOutput struct {
@@ -21,6 +25,7 @@ type StreamOutput struct {
 	stream      *tablestream.Stream
 	errors      chan error
 	inputExists func() *bool
+	profile     bool
 }
 
 func (o *StreamOutput) CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error {
@@ -56,5 +61,16 @@ func (o *StreamOutput) SetInputExists(inputExists func() *bool) {
 }
 
 func (o *StreamOutput) InputExists() *bool {
+	if o.Profile() {
+		profiling.DumpMemory(fmt.Sprintf("memdump-%d.prof", time.Now().Unix()))
+	}
 	return o.inputExists()
+}
+
+func (o *StreamOutput) EnableProfile() {
+	o.profile = true
+}
+
+func (o *StreamOutput) Profile() bool {
+	return o.profile
 }

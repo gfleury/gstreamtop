@@ -8,11 +8,11 @@ func (s *Suite) TestGetTable(c *check.C) {
 	table, err := s.stream.GetTable("user")
 
 	c.Assert(err, check.IsNil)
-	c.Assert(table.name, check.Equals, "user")
+	c.Assert(table.Name(), check.Equals, "user")
 }
 
 func (s *Suite) TestAddTable(c *check.C) {
-	table := Table{name: "TableTest_Fake"}
+	table := TableSimple{name: "TableTest_Fake"}
 	s.stream.AddTable(&table)
 	tableGot, err := s.stream.GetTable("TableTest_Fake")
 
@@ -53,7 +53,7 @@ func (s *Suite) TestQueryCreateTableWithoutRegexMapping(c *check.C) {
 
 func (s *Suite) TestQueryCreateTableWithWrongRegexMapping(c *check.C) {
 	query := `CREATE TABLE user(gid INTEGER, shell VARCHAR)
-						FIELDS IDENTIFIED BY ')(Invalidxxx regexppp?d>[09]+):.*:(l>.[^:]*)$'
+						WITH FIELDS IDENTIFIED BY ')(Invalidxxx regexppp?d>[09]+):.*:(l>.[^:]*)$'
 						LINES TERMINATED BY '\n';`
 	err := s.stream.Query(query)
 
@@ -62,7 +62,7 @@ func (s *Suite) TestQueryCreateTableWithWrongRegexMapping(c *check.C) {
 
 func (s *Suite) TestQueryCreateTableWithMissingFieldsFromRegex(c *check.C) {
 	query := `CREATE TABLE user(gid INTEGER, shell VARCHAR)
-						FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*$'
+						WITH FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*$'
 						LINES TERMINATED BY '\n';`
 	err := s.stream.Query(query)
 
@@ -71,7 +71,7 @@ func (s *Suite) TestQueryCreateTableWithMissingFieldsFromRegex(c *check.C) {
 
 func (s *Suite) TestQueryCreateTableWithMissingFieldsFromTableFields(c *check.C) {
 	query := `CREATE TABLE user(shell VARCHAR)
-						FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
+						WITH FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
 						LINES TERMINATED BY '\n';`
 	err := s.stream.Query(query)
 

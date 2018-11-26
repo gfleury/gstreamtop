@@ -10,3 +10,11 @@ test:
 race:
 	go clean $(PKGS)
 	go test -race $(PKGS) -check.v
+
+profile:
+	go clean $(PKGS)
+	make
+	
+clean:
+	rm -rf *.prof
+	go clean $(PKGS)

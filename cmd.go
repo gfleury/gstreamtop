@@ -9,6 +9,8 @@ import (
 	"github.com/gfleury/gstreamtop/conf"
 	"github.com/gfleury/gstreamtop/input"
 	"github.com/gfleury/gstreamtop/output"
+
+	profile "github.com/gfleury/gstreamtop/profiling"
 )
 
 func main() {
@@ -16,6 +18,8 @@ func main() {
 	var inputFd *os.File
 	var o output.Outputer
 	var err error
+	var profiling bool
+	var cpuProfileHandler func()
 
 	c := &conf.Configuration{}
 
@@ -75,12 +79,22 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		if profiling {
+			cpuProfileHandler = profile.EnableCPUProfile("gstreamtop.prof")
+			o.EnableProfile()
+		}
 	})
+
 	defer inputFd.Close()
+	if cpuProfileHandler != nil {
+		defer cpuProfileHandler()
+	}
 
 	rootCmd.PersistentFlags().StringVar(&mapFile, "map", "./mapping.yaml", "config file (default is https://raw.githubusercontent.com/gfleury/gstreamtop/master/mapping.yaml)")
 	rootCmd.PersistentFlags().StringVar(&inputFile, "input", "", "input file, default to stdin")
 	rootCmd.PersistentFlags().StringVar(&outputer, "output", "simpletable", "output method, use: simpletable/table")
+	rootCmd.PersistentFlags().BoolVar(&profiling, "profile", false, "enable profiling for CPU and Memory with pprof")
 
 	rootCmd.AddCommand(cmdRunNamedQuery)
 

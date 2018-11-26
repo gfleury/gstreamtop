@@ -10,7 +10,7 @@ import (
 func (s *Suite) TestTableCreateTable(c *check.C) {
 	table := CreateTable("testTable")
 
-	c.Assert(table, check.DeepEquals, &Table{name: "testTable", typeInstance: make(map[string]chan map[string]string)})
+	c.Assert(table, check.DeepEquals, &TableSimple{name: "testTable", typeInstance: make(map[string]chan map[string]string)})
 }
 
 func (s *Suite) TestAddField(c *check.C) {
@@ -20,7 +20,7 @@ func (s *Suite) TestAddField(c *check.C) {
 	table.AddField(&Field{name: "f2", fieldType: VARCHAR})
 
 	c.Assert(table, check.DeepEquals,
-		&Table{
+		&TableSimple{
 			name:         "testTable",
 			typeInstance: make(map[string]chan map[string]string),
 			fields: []*Field{
@@ -35,7 +35,7 @@ func (s *Suite) TestAddField(c *check.C) {
 
 func (s *Suite) TestAddRow(c *check.C) {
 
-	table := CreateTable("testTable")
+	table := CreateTableRegex("testTable")
 
 	table.AddField(&Field{name: "f1", fieldType: VARCHAR})
 	table.AddField(&Field{name: "f2", fieldType: VARCHAR})

@@ -10,49 +10,31 @@ import (
 )
 
 func (s *Stream) prepareCreate(stmt *sqlparser.DDL) (err error) {
-	if !strings.Contains(stmt.TableSpec.Options, "FIELDS IDENTIFIED by ") {
-		return fmt.Errorf("unable to find FIELDS IDENTIFIED by")
-	}
-	t := CreateTable(stmt.NewName.Name.String())
+	var t Table
+	var fields int
 
-	// Handle FIELDS IDENTIFIED BY
-	regexIdentifiedBy := regexp.MustCompile(`(?mi)IDENTIFIED BY (?P<regex>('([^']|\\"|\\')*.')|("([^"]|\\"|\\')*."))`)
-	regexMap := regexIdentifiedBy.FindStringSubmatch(stmt.TableSpec.Options)
-	if len(regexMap) < 2 {
-		return fmt.Errorf("no FIELDS IDENTIFIED BY found")
-	}
-	regexMapTrimmed := strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
-	regexMapTrimmed = strings.TrimSuffix(strings.TrimSuffix(regexMapTrimmed, "'"), "\"")
-	t.fieldRegexMap, err = regexp.Compile(regexMapTrimmed)
-	if err != nil {
-		return fmt.Errorf("regex present on FIELDS IDENTIFIED by failed to compile: %s", err.Error())
+	if strings.Contains(stmt.TableSpec.Options, "FIELDS IDENTIFIED by") {
+		t, fields, err = regexMapping(stmt)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("unable to find FIELDS IDENTIFIED by")
 	}
 
 	// Handle LINES TERMINATED BY
 	linesTerminatedBy := regexp.MustCompile(`(?mi)LINES TERMINATED BY (?P<nr>('([^']|\\"|\\')*.')|("([^"]|\\"|\\')*."))`)
 	crMap := linesTerminatedBy.FindStringSubmatch(stmt.TableSpec.Options)
 	if len(crMap) > 1 {
-		t.rowSeparator = strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
-		t.rowSeparator = strings.TrimSuffix(strings.TrimSuffix(t.rowSeparator, "'"), "\"")
+		sep := strings.TrimPrefix(strings.TrimPrefix(crMap[1], "'"), "\"")
+		sep = strings.TrimSuffix(strings.TrimSuffix(sep, "'"), "\"")
+		t.SetRowSeparator(sep)
 	} else {
-		t.rowSeparator = "\n"
+		t.SetRowSeparator("\n")
 	}
 
-	regexFields := t.fieldRegexMap.SubexpNames()[1:]
-	for _, column := range stmt.TableSpec.Columns {
-		for _, field := range regexFields {
-			if column.Name.String() == field {
-				t.AddField(&Field{
-					name:      field,
-					fieldType: fieldType(column.Type.Type),
-					table:     t,
-				})
-				break
-			}
-		}
-	}
-	if len(t.fields) != len(stmt.TableSpec.Columns) || len(regexFields) != len(stmt.TableSpec.Columns) {
-		return fmt.Errorf("regex groups doesn't match table columns: missing %d fields", len(regexFields)-len(stmt.TableSpec.Columns))
+	if len(t.Fields()) != len(stmt.TableSpec.Columns) || fields != len(stmt.TableSpec.Columns) {
+		return fmt.Errorf("regex groups doesn't match table columns: missing %d fields", fields-len(stmt.TableSpec.Columns))
 	}
 	s.AddTable(t)
 	return nil
@@ -137,7 +119,7 @@ func (s *Stream) Query(query string) error {
 	return err
 }
 
-func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *Table, deep bool) (fieldName string, err error) {
+func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table Table, deep bool) (fieldName string, err error) {
 
 	for _, selectedExpr := range selectedExpr {
 
@@ -146,7 +128,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table *
 			// return any field as it is considering '*'
 			if deep {
 				fieldName = "*"
-				field := table.Field(table.fields[0].name)
+				field := table.Field(table.Fields()[0].name)
 
 				view.AddViewData(&ViewData{
 					field: field,

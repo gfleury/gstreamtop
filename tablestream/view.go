@@ -15,9 +15,10 @@ type View struct {
 		orderByField *ViewData
 		direction    string
 	}
-	tables []*Table
+	tables []Table
 	limit  int
 	lock   sync.Mutex
+	errors []error
 }
 
 func CreateView(name string) *View {
@@ -41,10 +42,10 @@ func (v *View) ViewData(name string) *ViewData {
 	return &ViewData{}
 }
 
-func (v *View) AddTable(t *Table) {
+func (v *View) AddTable(t Table) {
 	v.tables = append(v.tables, t)
 	t.Lock()
-	t.typeInstance[v.name] = make(chan map[string]string)
+	t.SetTypeInstance(v.name, make(chan map[string]string))
 	t.Unlock()
 }
 
@@ -72,18 +73,17 @@ func (v *View) UpdateView() {
 	for {
 		for _, table := range v.tables {
 			table.Lock()
-			tableChan := table.typeInstance[v.name]
+			tableChan := table.TypeInstance(v.name)
 			table.Unlock()
 			select {
 			case newData := <-tableChan:
-				//fmt.Println(newData)
 				v.lock.Lock()
 				groupBy, _ := v.groupByField.CallUpdateValue(newData[v.groupByField.field.name], "")
 				for key, value := range newData {
 					for _, viewData := range v.ViewDataByFieldName(key) {
-						_, err := viewData.CallUpdateValue(value, groupBy.(string)) //newData[v.groupByColumn])
+						_, err := viewData.CallUpdateValue(value, groupBy.(string))
 						if err != nil {
-							viewData.field.AddError(fmt.Errorf("failed to update value on %s:%s %s %s\n", v.name, viewData.name, value, err.Error()))
+							v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s\n", v.name, viewData.name, value, err.Error()))
 						}
 					}
 				}
@@ -238,4 +238,13 @@ func (v *View) OrderedKeys() []string {
 	}
 
 	return orderedKeys
+}
+
+func (v *View) AddError(err error) {
+	maxSize := 1024
+	v.errors = append(v.errors, err)
+	if len(v.errors) > maxSize {
+		v.errors[maxSize] = nil
+		v.errors = v.errors[:maxSize]
+	}
 }

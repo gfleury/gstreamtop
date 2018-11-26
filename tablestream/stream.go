@@ -5,24 +5,24 @@ import (
 )
 
 type Stream struct {
-	tables []*Table
+	tables []Table
 	views  []*View
 }
 
-func (s *Stream) GetTable(name string) (*Table, error) {
+func (s *Stream) GetTable(name string) (Table, error) {
 	for i, table := range s.tables {
-		if table.name == name {
+		if table.Name() == name {
 			return s.tables[i], nil
 		}
 	}
 	return nil, fmt.Errorf("no table named %s", name)
 }
 
-func (s *Stream) GetTables() []*Table {
+func (s *Stream) GetTables() []Table {
 	return s.tables
 }
 
-func (s *Stream) AddTable(t *Table) {
+func (s *Stream) AddTable(t Table) {
 	s.tables = append(s.tables, t)
 }
 

@@ -1,7 +1,7 @@
 mappings:
 - name: passwd
   tables:
-  - CREATE TABLE user(gid INTEGER, shell VARCHAR) FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
+  - CREATE TABLE user(gid INTEGER, shell VARCHAR) WITH FIELDS IDENTIFIED BY '(?P<gid>[0-9]+):.*:(?P<shell>.[^:]*)$'
     LINES TERMINATED BY '\n';
   queries:
   - name: sumgid
@@ -11,7 +11,7 @@ mappings:
   - CREATE TABLE log(ip VARCHAR, col2 VARCHAR, col3 VARCHAR,
     dt VARCHAR, method VARCHAR, url VARCHAR, version VARCHAR, 
     response INTEGER, size INTEGER, col10 VARCHAR, useragent VARCHAR) 
-    FIELDS IDENTIFIED BY '^(?P<ip>\\S+)\\s(?P<col2>\\S+)\\s(?P<col3>\\S+)\\s\\[(?P<dt>[\\w:\\/]+\\s[+\\-]\\d{4})\\]\\s"(?P<method>\\S+)\\s?(?P<url>\\S+)?\\s?(?P<version>\\S+)?"\\s(?P<response>\\d{3}|-)\\s(?P<size>\\d+|-)\\s?"?(?P<col10>[^"]*)"?\\s?"?(?P<useragent>[^"]*)?"?$'
+    WITH FIELDS IDENTIFIED BY '^(?P<ip>\\S+)\\s(?P<col2>\\S+)\\s(?P<col3>\\S+)\\s\\[(?P<dt>[\\w:\\/]+\\s[+\\-]\\d{4})\\]\\s"(?P<method>\\S+)\\s?(?P<url>\\S+)?\\s?(?P<version>\\S+)?"\\s(?P<response>\\d{3}|-)\\s(?P<size>\\d+|-)\\s?"?(?P<col10>[^"]*)"?\\s?"?(?P<useragent>[^"]*)?"?$'
     LINES TERMINATED BY '\n';
   queries:
   - name: responsebyurl
