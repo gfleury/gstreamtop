@@ -1,6 +1,7 @@
 package tablestream
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ const (
 	GreaterOrEqual Operator = ">="
 	Less           Operator = "<"
 	LessOrEqual    Operator = "<="
-	Like           Operator = "LIKE"
+	Like           Operator = "like"
 )
 
 type SimpleCondition struct {
@@ -64,12 +65,24 @@ func (c *SimpleCondition) Evaluate(row map[string]string) bool {
 
 		if leftField != nil {
 			if leftField.name == key {
-				c.left.SetValue(value)
+				var param interface{}
+				if _, ok := c.left.(*AggregatedViewData); ok {
+					param = AggregatedValue{value: value, groupBy: "__lastItem"}
+				} else {
+					param = value
+				}
+				c.left.CallUpdateValue(param)
 			}
 		}
 		if rightField != nil {
 			if rightField.name == key {
-				c.right.SetValue(value)
+				var param interface{}
+				if _, ok := c.right.(*AggregatedViewData); ok {
+					param = AggregatedValue{value: value, groupBy: "__lastItem"}
+				} else {
+					param = value
+				}
+				c.right.CallUpdateValue(param)
 			}
 		}
 	}
@@ -88,7 +101,9 @@ func (c *SimpleCondition) Evaluate(row map[string]string) bool {
 	case LessOrEqual:
 		return c.left.Value().(int) <= c.right.Value().(int)
 	case Like:
-		return strings.Contains(c.left.Value().(string), c.right.Value().(string))
+		likeString := strings.Replace(c.right.Value().(string), "%", ".*", -1)
+		likeRegexp := regexp.MustCompile(likeString)
+		return likeRegexp.MatchString(c.left.Value().(string))
 	}
 	return false
 }

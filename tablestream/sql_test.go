@@ -151,7 +151,7 @@ func (s *Suite) TestPrepareSelectWhere(c *check.C) {
 	queries := []string{
 		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE URLIFY(url)='/favicon.ico' GROUP BY URLIFY(url);",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly!='/favicon.ico' GROUP BY urly;",
-		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly LIKE '/favico%'  GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly LIKE '/Bro%'  GROUP BY urly;",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>500 GROUP BY urly;",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>=500 GROUP BY urly;",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<500 GROUP BY urly;",
@@ -164,7 +164,7 @@ func (s *Suite) TestPrepareSelectWhere(c *check.C) {
 	results := []bool{
 		false,
 		true,
-		false,
+		true,
 		true,
 		true,
 		false,
@@ -180,7 +180,7 @@ func (s *Suite) TestPrepareSelectWhere(c *check.C) {
 		"col3":      "-",
 		"dt":        "12/12/2019",
 		"method":    "GET",
-		"url":       "/Broooz",
+		"url":       "/Broooz?param=george",
 		"version":   "HTTP/1.1",
 		"response":  "200",
 		"size":      "1024",

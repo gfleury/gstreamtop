@@ -327,19 +327,23 @@ func getFieldOrStatic(expr sqlparser.Expr, view *View, table Table) (ViewData, e
 	if extra == "intVal" {
 		integer, err := strconv.Atoi(field)
 		if err == nil {
-			return &SimpleViewData{
+			viewData := &SimpleViewData{
 				name:    field,
 				varType: INTEGER,
 				value:   integer,
-			}, nil
+			}
+			err := viewData.UpdateModifier("SetValue")
+			return viewData, err
 		}
 		return nil, err
 	} else if extra == "strVal" {
-		return &SimpleViewData{
+		viewData := &SimpleViewData{
 			name:    field,
 			varType: VARCHAR,
 			value:   field,
-		}, nil
+		}
+		err := viewData.UpdateModifier("SetValue")
+		return viewData, err
 	}
 	vds := view.ViewDataByName(field)
 	if len(vds) < 1 {
