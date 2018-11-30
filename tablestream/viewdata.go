@@ -224,3 +224,7 @@ func (v *ViewData) KeyArray() []kv {
 	}
 	return keys
 }
+
+func (v *ViewData) Value() interface{} {
+	return v.data[""]
+}

@@ -136,3 +136,34 @@ func (s *Suite) TestPrepareSelectLimit(c *check.C) {
 	}
 
 }
+
+// WHERE
+func (s *Suite) TestPrepareSelectWhere(c *check.C) {
+	stream := Stream{}
+
+	err := stream.Query(`CREATE TABLE log(ip VARCHAR, col2 VARCHAR, col3 VARCHAR,
+		dt VARCHAR, method VARCHAR, url VARCHAR, version VARCHAR, 
+		response INTEGER, size INTEGER, col10 VARCHAR, useragent VARCHAR)
+		WITH FIELDS IDENTIFIED BY '^(?P<ip>\\S+)\\s(?P<col2>\\S+)\\s(?P<col3>\\S+)\\s\\[(?P<dt>[\\w:\\/]+\\s[+\\-]\\d{4})\\]\\s"(?P<method>\\S+)\\s?(?P<url>\\S+)?\\s?(?P<version>\\S+)?"\\s(?P<response>\\d{3}|-)\\s(?P<size>\\d+|-)\\s?"?(?P<col10>[^"]*)"?\\s?"?(?P<useragent>[^"]*)?"?$'
+		LINES TERMINATED BY '\n';`)
+	c.Assert(err, check.IsNil)
+
+	queries := []string{
+		// "SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE URLIFY(url)='/favicon.ico' GROUP BY URLIFY(url);",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly!='/favicon.ico' GROUP BY urly;",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly LIKE '/favico%'  GROUP BY urly;",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>500 GROUP BY urly;",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>=500 GROUP BY urly;",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<500 GROUP BY urly;",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<=500 GROUP BY urly;",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<=500 AND size>=100 GROUP BY urly;",
+		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>=500 OR size<=100 GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE ((size>=500 OR size<=100) AND (response<500 OR response>=200)) OR urly LIKE '/salve%' GROUP BY urly;",
+	}
+
+	for _, query := range queries {
+		err = stream.Query(query)
+		c.Assert(err, check.IsNil)
+	}
+
+}

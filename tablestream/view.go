@@ -15,10 +15,11 @@ type View struct {
 		orderByField *ViewData
 		direction    string
 	}
-	tables []Table
-	limit  int
-	lock   sync.Mutex
-	errors []error
+	condition Conditioner
+	tables    []Table
+	limit     int
+	lock      sync.Mutex
+	errors    []error
 }
 
 func CreateView(name string) *View {
@@ -247,4 +248,8 @@ func (v *View) AddError(err error) {
 		v.errors[maxSize] = nil
 		v.errors = v.errors[:maxSize]
 	}
+}
+
+func (v *View) SetCondition(cond Conditioner) {
+	v.condition = cond
 }

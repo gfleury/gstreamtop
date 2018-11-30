@@ -94,8 +94,20 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		view.SetOrderBy(orderByFields, direction)
 	}
 
+	// WHERE
+	var cond Conditioner
+	if stmt.Where != nil {
+		expr := stmt.Where.Expr
+		where, err := parseWhere(expr, view, table)
+		if err != nil {
+			return err
+		}
+		cond = where
+	}
+
 	view.SetGroupBy(groupByFields)
 	view.SetLimit(limit)
+	view.SetCondition(cond)
 
 	view.AddTable(table)
 	s.AddView(view)
@@ -107,7 +119,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 func (s *Stream) Query(query string) error {
 	stmt, err := sqlparser.Parse(query)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	switch stmt := stmt.(type) {
@@ -196,7 +208,18 @@ func getFieldByStmt(stmt interface{}) (fieldName, extra string, _ error) {
 		if !ok {
 			orderExpr, ok := stmt.(*sqlparser.Order)
 			if !ok {
-				return fieldName, extra, fmt.Errorf("ORDER BY should be collumn name or function")
+				sqlVal, ok := stmt.(*sqlparser.SQLVal)
+				if !ok {
+					return fieldName, extra, fmt.Errorf("ORDER BY should be collumn name or function")
+				}
+				fieldName, err := fromSQLValToString(sqlVal)
+				if sqlVal.Type == sqlparser.StrVal {
+					extra = "strVal"
+				} else if sqlVal.Type == sqlparser.IntVal {
+					extra = "intVal"
+				}
+
+				return fieldName, extra, err
 			}
 			extra = orderExpr.Direction
 			fieldName, _, err := getFieldByStmt(orderExpr.Expr)
@@ -236,4 +259,101 @@ func fromSQLValToInt(sqlVal *sqlparser.SQLVal) (limit int, err error) {
 	limitStr := string(sqlVal.Val)
 	limit, err = strconv.Atoi(limitStr)
 	return limit, err
+}
+
+func fromSQLValToString(sqlVal *sqlparser.SQLVal) (str string, err error) {
+	str = string(sqlVal.Val)
+	return str, err
+}
+
+func fromExprToCondition(comparison *sqlparser.ComparisonExpr, c *SimpleCondition, view *View, table Table) (err error) {
+	c.operator = Operator(comparison.Operator)
+	c.left, err = getFieldOrStatic(comparison.Left, view, table)
+	if err != nil {
+		return err
+	}
+	c.right, err = getFieldOrStatic(comparison.Right, view, table)
+	return err
+}
+
+func parseWhere(expr sqlparser.Expr, view *View, table Table) (c Conditioner, err error) {
+	if comparison, ok := expr.(*sqlparser.ComparisonExpr); ok {
+		simpleCond := &SimpleCondition{}
+		err = fromExprToCondition(comparison, simpleCond, view, table)
+		if err != nil {
+			return c, err
+		}
+		c = simpleCond
+	} else if or, ok := expr.(*sqlparser.OrExpr); ok {
+		orCond := &OrCondition{}
+		orCond.right, err = parseWhere(or.Right, view, table)
+		if err != nil {
+			return c, err
+		}
+		orCond.left, err = parseWhere(or.Left, view, table)
+		if err != nil {
+			return c, err
+		}
+		c = orCond
+	} else if and, ok := expr.(*sqlparser.AndExpr); ok {
+		andCond := &AndCondition{}
+		andCond.right, err = parseWhere(and.Right, view, table)
+		if err != nil {
+			return c, err
+		}
+		andCond.left, err = parseWhere(and.Left, view, table)
+		if err != nil {
+			return c, err
+		}
+		c = andCond
+	} else if paren, ok := expr.(*sqlparser.ParenExpr); ok {
+		parenCond := &ParentCondition{}
+		parenCond.condition, err = parseWhere(paren.Expr, view, table)
+		if err != nil {
+			return c, err
+		}
+		c = parenCond
+	}
+
+	return c, err
+}
+
+func getFieldOrStatic(expr sqlparser.Expr, view *View, table Table) (*ViewData, error) {
+	field, extra, _ := getFieldByStmt(expr)
+	if extra == "intVal" {
+		integer, err := strconv.Atoi(field)
+		if err == nil {
+			return &ViewData{
+				name:    field,
+				varType: INTEGER,
+				data: map[string]interface{}{
+					"": integer,
+				},
+			}, nil
+		}
+		return nil, err
+	} else if extra == "strVal" {
+		return &ViewData{
+			name:    field,
+			varType: VARCHAR,
+			data: map[string]interface{}{
+				"": field,
+			},
+		}, nil
+	}
+	vds := view.ViewDataByName(field)
+	if len(vds) < 1 {
+		viewData := &ViewData{
+			field: table.Field(field),
+			name:  field,
+			data:  make(map[string]interface{}),
+		}
+		err := viewData.UpdateModifier("SetValue")
+		view.AddViewData(viewData)
+
+		return viewData, err
+
+	} else {
+		return vds[0], nil
+	}
 }
