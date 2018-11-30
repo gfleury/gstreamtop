@@ -9,10 +9,10 @@ import (
 
 type View struct {
 	name         string
-	viewData     []*ViewData
-	groupByField *ViewData
+	viewData     []ViewData
+	groupByField ViewData
 	orderBy      struct {
-		orderByField *ViewData
+		orderByField ViewData
 		direction    string
 	}
 	condition Conditioner
@@ -24,23 +24,23 @@ type View struct {
 
 func CreateView(name string) *View {
 	view := &View{name: name}
-	view.viewData = []*ViewData{}
+	view.viewData = []ViewData{}
 	view.limit = 0
 
 	return view
 }
 
-func (v *View) AddViewData(vd *ViewData) {
+func (v *View) AddViewData(vd ViewData) {
 	v.viewData = append(v.viewData, vd)
 }
 
-func (v *View) ViewData(name string) *ViewData {
+func (v *View) ViewData(name string) ViewData {
 	for i, viewData := range v.viewData {
-		if viewData.name == name {
+		if viewData.Name() == name {
 			return v.viewData[i]
 		}
 	}
-	return &ViewData{}
+	return &AggregatedViewData{}
 }
 
 func (v *View) AddTable(t Table) {
@@ -50,20 +50,20 @@ func (v *View) AddTable(t Table) {
 	t.Unlock()
 }
 
-func (v *View) ViewDataByFieldName(name string) []*ViewData {
-	viewDatas := []*ViewData{}
+func (v *View) ViewDataByFieldName(name string) []ViewData {
+	viewDatas := []ViewData{}
 	for i, viewData := range v.viewData {
-		if viewData.field.name == name {
+		if viewData.Field().name == name {
 			viewDatas = append(viewDatas, v.viewData[i])
 		}
 	}
 	return viewDatas
 }
 
-func (v *View) ViewDataByName(name string) []*ViewData {
-	viewDatas := []*ViewData{}
+func (v *View) ViewDataByName(name string) []ViewData {
+	viewDatas := []ViewData{}
 	for i, viewData := range v.viewData {
-		if viewData.name == name {
+		if viewData.Name() == name {
 			viewDatas = append(viewDatas, v.viewData[i])
 		}
 	}
@@ -78,13 +78,16 @@ func (v *View) UpdateView() {
 			table.Unlock()
 			select {
 			case newData := <-tableChan:
+				if !v.evaluateWhere(newData) {
+					continue
+				}
 				v.lock.Lock()
-				groupBy, _ := v.groupByField.CallUpdateValue(newData[v.groupByField.field.name], "")
+				groupBy, _ := v.groupByField.CallUpdateValue(AggregatedValue{value: newData[v.groupByField.Field().name], groupBy: ""})
 				for key, value := range newData {
 					for _, viewData := range v.ViewDataByFieldName(key) {
-						_, err := viewData.CallUpdateValue(value, groupBy.(string))
+						_, err := viewData.CallUpdateValue(AggregatedValue{value: value, groupBy: groupBy.(string)})
 						if err != nil {
-							v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s\n", v.name, viewData.name, value, err.Error()))
+							v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s\n", v.name, viewData.Name(), value, err.Error()))
 						}
 					}
 				}
@@ -113,7 +116,7 @@ func (v *View) IntViewData(idx int, keys []string) []int {
 
 func (v *View) StringViewData(idx int, keys []string) []string {
 	vd := v.viewData[idx]
-	if vd.field.fieldType != VARCHAR {
+	if vd.Field().fieldType != VARCHAR {
 		return []string{}
 	}
 
@@ -138,11 +141,11 @@ func (v *View) FetchAllRows() [][]string {
 	orderedKeys := v.OrderedKeys()
 
 	for i, column := range v.viewData {
-		columnName := column.name
+		columnName := column.Name()
 
 		allRows[0] = append(allRows[0], columnName)
 
-		dataType := column.varType
+		dataType := column.VarType()
 
 		switch dataType {
 		case VARCHAR:
@@ -173,24 +176,16 @@ func (v *View) SetLimit(limit int) {
 	v.limit = limit
 }
 
-func (v *View) SetOrderBy(orderByFields []*ViewData, direction string) {
+func (v *View) SetOrderBy(orderByFields []ViewData, direction string) {
 	// TODO Handle more than one GROUP BY
 	v.orderBy.orderByField = orderByFields[0]
 	v.orderBy.direction = direction
 }
 
-func (v *View) SetGroupBy(groupByFields []*ViewData) {
+func (v *View) SetGroupBy(groupByFields []ViewData) {
 	// TODO Handle more than one GROUP BY
 	groupByField := groupByFields[0]
-	v.groupByField = &ViewData{
-		data:        make(map[string]interface{}),
-		field:       groupByField.field,
-		modifier:    groupByField.modifier,
-		name:        groupByField.name,
-		updateValue: groupByField.updateValue,
-		varType:     groupByField.varType,
-	}
-
+	v.groupByField = groupByField
 }
 
 func (v *View) OrderedKeys() []string {
@@ -212,13 +207,19 @@ func (v *View) OrderedKeys() []string {
 
 	if v.orderBy.orderByField != nil {
 		sort.Slice(keys, func(i, j int) bool {
-			if vd.varType == INTEGER {
+			if vd.VarType() == INTEGER {
+				if keys[i].Value.(int) == keys[j].Value.(int) {
+					return keys[i].Key > keys[j].Key
+				}
 				if ascOrder {
 					return keys[i].Value.(int) > keys[j].Value.(int)
 				} else {
 					return keys[i].Value.(int) < keys[j].Value.(int)
 				}
-			} else if vd.varType == VARCHAR {
+			} else if vd.VarType() == VARCHAR {
+				if keys[i].Value.(string) == keys[j].Value.(string) {
+					return keys[i].Key > keys[j].Key
+				}
 				if ascOrder {
 					return keys[i].Value.(string) > keys[j].Value.(string)
 				} else {
@@ -252,4 +253,11 @@ func (v *View) AddError(err error) {
 
 func (v *View) SetCondition(cond Conditioner) {
 	v.condition = cond
+}
+
+func (v *View) evaluateWhere(row map[string]string) bool {
+	if v.condition != nil {
+		return v.condition.Evaluate(row)
+	}
+	return true
 }

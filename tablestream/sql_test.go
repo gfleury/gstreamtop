@@ -29,7 +29,7 @@ func (s *Suite) TestPrepareSelectGroupBy(c *check.C) {
 	for i, query := range queries {
 		err = stream.Query(query)
 		c.Assert(err, check.IsNil)
-		c.Assert(stream.GetViews()[i].groupByField.name, check.Equals, groupBy[i])
+		c.Assert(stream.GetViews()[i].groupByField.Name(), check.Equals, groupBy[i])
 	}
 
 	queriesFail := []string{
@@ -91,7 +91,7 @@ func (s *Suite) TestPrepareSelectOrderBy(c *check.C) {
 	for i, query := range queries {
 		err = stream.Query(query)
 		c.Assert(err, check.IsNil)
-		c.Assert(stream.GetViews()[i].orderBy.orderByField.name, check.Equals, orderBy[i][0])
+		c.Assert(stream.GetViews()[i].orderBy.orderByField.Name(), check.Equals, orderBy[i][0])
 		c.Assert(stream.GetViews()[i].orderBy.direction, check.Equals, orderBy[i][1])
 	}
 
@@ -149,20 +149,48 @@ func (s *Suite) TestPrepareSelectWhere(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	queries := []string{
-		// "SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE URLIFY(url)='/favicon.ico' GROUP BY URLIFY(url);",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly!='/favicon.ico' GROUP BY urly;",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly LIKE '/favico%'  GROUP BY urly;",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>500 GROUP BY urly;",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>=500 GROUP BY urly;",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<500 GROUP BY urly;",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<=500 GROUP BY urly;",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<=500 AND size>=100 GROUP BY urly;",
-		// "SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>=500 OR size<=100 GROUP BY urly;",
+		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE URLIFY(url)='/favicon.ico' GROUP BY URLIFY(url);",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly!='/favicon.ico' GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly LIKE '/favico%'  GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>500 GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>=500 GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<500 GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<=500 GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size<=500 AND size>=100 GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>=500 OR size<=100 GROUP BY urly;",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE ((size>=500 OR size<=100) AND (response<500 OR response>=200)) OR urly LIKE '/salve%' GROUP BY urly;",
 	}
 
-	for _, query := range queries {
+	results := []bool{
+		false,
+		true,
+		false,
+		true,
+		true,
+		false,
+		false,
+		false,
+		true,
+		true,
+	}
+
+	row := map[string]string{
+		"ip":        "127.0.0.1",
+		"col2":      "-",
+		"col3":      "-",
+		"dt":        "12/12/2019",
+		"method":    "GET",
+		"url":       "/Broooz",
+		"version":   "HTTP/1.1",
+		"response":  "200",
+		"size":      "1024",
+		"col10":     "-",
+		"useragent": "Curl 1.0",
+	}
+
+	for i, query := range queries {
 		err = stream.Query(query)
+		c.Assert(stream.GetViews()[i].evaluateWhere(row), check.Equals, results[i])
 		c.Assert(err, check.IsNil)
 	}
 

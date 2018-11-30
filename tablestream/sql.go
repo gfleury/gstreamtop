@@ -142,10 +142,12 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 				fieldName = "*"
 				field := table.Field(table.Fields()[0].name)
 
-				view.AddViewData(&ViewData{
-					field: field,
-					name:  fieldName,
-					data:  make(map[string]interface{}),
+				view.AddViewData(&AggregatedViewData{
+					SimpleViewData: SimpleViewData{
+						field: field,
+						name:  fieldName,
+					},
+					data: make(map[string]interface{}),
 				})
 				return fieldName, err
 			}
@@ -163,12 +165,14 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 					fieldName = asFieldName
 				}
 
-				viewData := &ViewData{
-					field: field,
-					name:  fieldName,
-					data:  make(map[string]interface{}),
+				viewData := &AggregatedViewData{
+					SimpleViewData: SimpleViewData{
+						field: field,
+						name:  fieldName,
+					},
+					data: make(map[string]interface{}),
 				}
-				err = viewData.UpdateModifier("SetValue")
+				err = viewData.UpdateModifier("SetAggregatedValue")
 				view.AddViewData(viewData)
 
 				if deep {
@@ -179,7 +183,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 				modfier := selectedExpr.Name.String()
 				fieldName, err = view.createFieldMapping(selectedExpr.Exprs, table, true)
 				viewData := view.ViewData(fieldName)
-				if viewData.name == "" {
+				if viewData.Name() == "" {
 					continue
 				}
 
@@ -189,9 +193,9 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 				}
 
 				if asFieldName != "" {
-					viewData.name = asFieldName
+					viewData.SetName(asFieldName)
 				} else {
-					viewData.name = fmt.Sprintf("%s(%s)", modfier, fieldName)
+					viewData.SetName(fmt.Sprintf("%s(%s)", modfier, fieldName))
 				}
 
 			}
@@ -318,35 +322,31 @@ func parseWhere(expr sqlparser.Expr, view *View, table Table) (c Conditioner, er
 	return c, err
 }
 
-func getFieldOrStatic(expr sqlparser.Expr, view *View, table Table) (*ViewData, error) {
+func getFieldOrStatic(expr sqlparser.Expr, view *View, table Table) (ViewData, error) {
 	field, extra, _ := getFieldByStmt(expr)
 	if extra == "intVal" {
 		integer, err := strconv.Atoi(field)
 		if err == nil {
-			return &ViewData{
+			return &SimpleViewData{
 				name:    field,
 				varType: INTEGER,
-				data: map[string]interface{}{
-					"": integer,
-				},
+				value:   integer,
 			}, nil
 		}
 		return nil, err
 	} else if extra == "strVal" {
-		return &ViewData{
+		return &SimpleViewData{
 			name:    field,
 			varType: VARCHAR,
-			data: map[string]interface{}{
-				"": field,
-			},
+			value:   field,
 		}, nil
 	}
 	vds := view.ViewDataByName(field)
 	if len(vds) < 1 {
-		viewData := &ViewData{
+		viewData := &SimpleViewData{
 			field: table.Field(field),
 			name:  field,
-			data:  make(map[string]interface{}),
+			value: nil,
 		}
 		err := viewData.UpdateModifier("SetValue")
 		view.AddViewData(viewData)

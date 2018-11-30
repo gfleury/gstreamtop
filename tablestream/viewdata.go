@@ -8,9 +8,29 @@ import (
 	"time"
 )
 
-type ViewData struct {
+type ViewData interface {
+	UpdateModifier(mod string) error
+	Value() interface{}
+	SetValue(value interface{}) (interface{}, error)
+	Name() string
+	SetName(string)
+	Field() *Field
+	CallUpdateValue(value interface{}) (interface{}, error)
+	Length() int
+	Fetch(key string) interface{}
+	VarType() fieldType
+	KeyArray() []kv
+}
+
+type AggregatedViewData struct {
+	SimpleViewData
+	data map[string]interface{}
+}
+
+type SimpleViewData struct {
+	ViewData
 	name        string
-	data        map[string]interface{}
+	value       interface{}
 	field       *Field
 	table       *Table
 	updateValue reflect.Value
@@ -18,11 +38,16 @@ type ViewData struct {
 	varType     fieldType
 }
 
+type AggregatedValue struct {
+	value   interface{}
+	groupBy string
+}
+
 type AnalyticFunc interface {
 	Value() int
 }
 
-func (v *ViewData) UpdateModifier(mod string) error {
+func (v *AggregatedViewData) UpdateModifier(mod string) error {
 	switch mod {
 	case "COUNT":
 		v.varType = INTEGER
@@ -39,7 +64,7 @@ func (v *ViewData) UpdateModifier(mod string) error {
 	return nil
 }
 
-func (v *ViewData) SUM(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) SUM(newData interface{}, groupByName string) (interface{}, error) {
 	if v.field.fieldType != INTEGER {
 		return nil, fmt.Errorf("not integer")
 	}
@@ -59,7 +84,7 @@ func (v *ViewData) SUM(newData interface{}, groupByName string) (interface{}, er
 	return v.data[groupByName], nil
 }
 
-func (v *ViewData) MAX(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) MAX(newData interface{}, groupByName string) (interface{}, error) {
 	if v.field.fieldType != INTEGER {
 		return nil, fmt.Errorf("not integer")
 	}
@@ -81,7 +106,7 @@ func (v *ViewData) MAX(newData interface{}, groupByName string) (interface{}, er
 	return v.data[groupByName], nil
 }
 
-func (v *ViewData) MIN(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) MIN(newData interface{}, groupByName string) (interface{}, error) {
 	if v.field.fieldType != INTEGER {
 		return 0, fmt.Errorf("not integer")
 	}
@@ -103,7 +128,7 @@ func (v *ViewData) MIN(newData interface{}, groupByName string) (interface{}, er
 	return v.data[groupByName], nil
 }
 
-func (v *ViewData) COUNT(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) COUNT(newData interface{}, groupByName string) (interface{}, error) {
 	//if v.field.fieldType != INTEGER {
 	//	return fmt.Errorf("not integer")
 	//}
@@ -129,7 +154,7 @@ func (a average) Value() int {
 	return a.value
 }
 
-func (v *ViewData) AVG(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) AVG(newData interface{}, groupByName string) (interface{}, error) {
 	if v.data[groupByName] == nil {
 		v.data[groupByName] = average{
 			count: 0,
@@ -153,7 +178,7 @@ func (v *ViewData) AVG(newData interface{}, groupByName string) (interface{}, er
 	}
 }
 
-func (v *ViewData) SetValue(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) SetAggregatedValue(newData interface{}, groupByName string) (interface{}, error) {
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert.")
 		return nil, fmt.Errorf("not integer")
@@ -162,15 +187,17 @@ func (v *ViewData) SetValue(newData interface{}, groupByName string) (interface{
 	}
 }
 
-func (v *ViewData) FetchAll() map[string]interface{} {
+func (v *AggregatedViewData) FetchAll() map[string]interface{} {
 	for v.data == nil {
 		time.Sleep(100 * time.Millisecond)
 	}
 	return v.data
 }
 
-func (v *ViewData) CallUpdateValue(value interface{}, groupByName string) (interface{}, error) {
-	result := v.updateValue.Call([]reflect.Value{reflect.ValueOf(value), reflect.ValueOf(groupByName)})
+func (v *AggregatedViewData) CallUpdateValue(value interface{}) (interface{}, error) {
+	aggregatedValue := value.(AggregatedValue)
+
+	result := v.updateValue.Call([]reflect.Value{reflect.ValueOf(aggregatedValue.value), reflect.ValueOf(aggregatedValue.groupBy)})
 	err := result[1].Interface()
 	if err != nil {
 		return nil, err.(error)
@@ -178,7 +205,7 @@ func (v *ViewData) CallUpdateValue(value interface{}, groupByName string) (inter
 	return result[0].Interface(), nil
 }
 
-func (v *ViewData) URLIFY(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) URLIFY(newData interface{}, groupByName string) (interface{}, error) {
 	if v.field.fieldType != VARCHAR {
 		return "", fmt.Errorf("not varchar")
 	}
@@ -202,11 +229,11 @@ func setIfGroupByNotEmpty(value interface{}, data map[string]interface{}, groupB
 	return data[groupByName], nil
 }
 
-func (v *ViewData) Length() int {
+func (v *AggregatedViewData) Length() int {
 	return len(v.data)
 }
 
-func (v *ViewData) Fetch(key string) interface{} {
+func (v *AggregatedViewData) Fetch(key string) interface{} {
 	return v.data[key]
 }
 
@@ -215,7 +242,7 @@ type kv struct {
 	Value interface{}
 }
 
-func (v *ViewData) KeyArray() []kv {
+func (v *AggregatedViewData) KeyArray() []kv {
 	rowNumber := v.Length()
 	keys := make([]kv, 0, rowNumber)
 
@@ -225,6 +252,48 @@ func (v *ViewData) KeyArray() []kv {
 	return keys
 }
 
-func (v *ViewData) Value() interface{} {
+func (v *AggregatedViewData) Value() interface{} {
 	return v.data[""]
+}
+
+func (v *SimpleViewData) VarType() fieldType {
+	return v.varType
+}
+
+func (v *SimpleViewData) Name() string {
+	return v.name
+}
+
+func (v *SimpleViewData) SetName(name string) {
+	v.name = name
+}
+
+func (v *SimpleViewData) Field() *Field {
+	return v.field
+}
+
+func (v *SimpleViewData) SetValue(value interface{}) (interface{}, error) {
+	var err error
+	if v.VarType() == INTEGER {
+		v.value, err = strconv.Atoi(value.(string))
+	} else {
+		v.value = value
+	}
+	return v.value, err
+}
+
+func (v *SimpleViewData) Value() interface{} {
+	return v.value
+}
+
+func (v *SimpleViewData) UpdateModifier(mod string) error {
+	v.varType = v.field.fieldType
+	t := reflect.ValueOf(v)
+	m := t.MethodByName(mod)
+	if !m.IsValid() {
+		return fmt.Errorf("function %s not found", mod)
+	}
+	v.updateValue = m
+	v.modifier = mod
+	return nil
 }

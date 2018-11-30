@@ -5,7 +5,7 @@ import (
 )
 
 type Conditioner interface {
-	Evaluate() bool
+	Evaluate(map[string]string) bool
 }
 
 type Operator string
@@ -22,8 +22,8 @@ const (
 
 type SimpleCondition struct {
 	Conditioner
-	left     *ViewData
-	right    *ViewData
+	left     ViewData
+	right    ViewData
 	operator Operator
 }
 
@@ -44,19 +44,36 @@ type ParentCondition struct {
 	condition Conditioner
 }
 
-func (c *OrCondition) Evaluate() bool {
-	return c.left.Evaluate() || c.right.Evaluate()
+func (c *OrCondition) Evaluate(row map[string]string) bool {
+	return c.left.Evaluate(row) || c.right.Evaluate(row)
 }
 
-func (c *AndCondition) Evaluate() bool {
-	return c.left.Evaluate() && c.right.Evaluate()
+func (c *AndCondition) Evaluate(row map[string]string) bool {
+	return c.left.Evaluate(row) && c.right.Evaluate(row)
 }
 
-func (c *ParentCondition) Evaluate() bool {
-	return c.condition.Evaluate()
+func (c *ParentCondition) Evaluate(row map[string]string) bool {
+	return c.condition.Evaluate(row)
 }
 
-func (c *SimpleCondition) Evaluate() bool {
+func (c *SimpleCondition) Evaluate(row map[string]string) bool {
+
+	for key, value := range row {
+		leftField := c.left.Field()
+		rightField := c.right.Field()
+
+		if leftField != nil {
+			if leftField.name == key {
+				c.left.SetValue(value)
+			}
+		}
+		if rightField != nil {
+			if rightField.name == key {
+				c.right.SetValue(value)
+			}
+		}
+	}
+
 	switch c.operator {
 	case Equal:
 		return c.left.Value() == c.right.Value()
