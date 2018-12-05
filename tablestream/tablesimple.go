@@ -70,3 +70,8 @@ func (t *TableSimple) SetTypeInstance(key string, channel chan map[string]string
 func (t *TableSimple) TypeInstance(key string) chan map[string]string {
 	return t.typeInstance[key]
 }
+
+// AddRow TODO: Implement some simple data push or keeper
+func (t *TableSimple) AddRow(data interface{}) error {
+	return nil
+}

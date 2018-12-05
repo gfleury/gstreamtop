@@ -1,7 +1,7 @@
 package tablestream
 
 type Table interface {
-	AddRow(string) error
+	AddRow(interface{}) error
 	SetRowSeparator(string)
 	RowSeparator() string
 	AddField(*Field) error

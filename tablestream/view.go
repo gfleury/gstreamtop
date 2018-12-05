@@ -161,7 +161,7 @@ func (v *View) FetchAllRows() [][]string {
 		}
 	}
 
-	if v.limit == 0 || rowNumber == 0 {
+	if v.limit == 0 || rowNumber == 0 || rowNumber <= v.limit {
 		return allRows
 	}
 

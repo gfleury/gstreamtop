@@ -22,7 +22,8 @@ func CreateTableRegex(name string) *TableRegex {
 	return &t
 }
 
-func (t *TableRegex) AddRow(row string) error {
+func (t *TableRegex) AddRow(data interface{}) error {
+	row := data.(string)
 	match := t.fieldRegexMap.FindStringSubmatch(row)
 	if len(match) > 0 {
 		tableRow := make(map[string]string)
