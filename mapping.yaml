@@ -17,5 +17,5 @@ mappings:
   - name: responsebyurl
     query: SELECT URLIFY(url) as url, COUNT(*) as count, SUM(size) as sum, AVG(size), MAX(response) FROM log GROUP BY url ORDER BY count LIMIT 20;
   - name: likegroup
-    query: SELECT url, COUNT(*) as count, SUM(size) as sum, AVG(size), MAX(response) FROM log WHERE url LIKE '/group/%' GROUP BY url ORDER BY count LIMIT 5;
+    query: SELECT url, COUNT(*) as count, SUM(size) as sum, AVG(size), MAX(response) FROM log WHERE url LIKE '/group/%' AND response > 200 GROUP BY url ORDER BY count LIMIT 5;
 

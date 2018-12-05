@@ -149,7 +149,7 @@ func (s *Suite) TestPrepareSelectWhere(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	queries := []string{
-		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE URLIFY(url)='/favicon.ico' GROUP BY URLIFY(url);",
+		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE URLIFY(url)='/favicon.ico' OR response > 200 GROUP BY URLIFY(url);",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly!='/favicon.ico' GROUP BY urly;",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE urly LIKE '/Bro%'  GROUP BY urly;",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log WHERE size>500 GROUP BY urly;",

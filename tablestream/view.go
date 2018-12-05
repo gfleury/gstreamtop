@@ -100,8 +100,9 @@ func (v *View) UpdateView() {
 func (v *View) IntViewData(idx int, keys []string) []int {
 	vd := v.viewData[idx]
 
-	rowNumber := vd.Length()
-	ret := make([]int, rowNumber)
+	// rowNumber := vd.Length()
+	// ret := make([]int, rowNumber)
+	ret := make([]int, len(keys))
 
 	for j, key := range keys {
 		var ok bool
@@ -120,8 +121,9 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 		return []string{}
 	}
 
-	rowNumber := vd.Length()
-	ret := make([]string, rowNumber)
+	// rowNumber := vd.Length()
+	// ret := make([]string, rowNumber)
+	ret := make([]string, len(keys))
 
 	for j, key := range keys {
 		ret[j] = vd.Fetch(key).(string)

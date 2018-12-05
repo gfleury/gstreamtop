@@ -50,7 +50,13 @@ func (v *SimpleViewData) Field() *Field {
 func (v *SimpleViewData) SetValue(value interface{}) (interface{}, error) {
 	var err error
 	if v.VarType() == INTEGER {
-		v.value, err = strconv.Atoi(value.(string))
+		var strValue string
+		if aggValue, ok := value.(AggregatedValue); ok {
+			strValue = aggValue.value.(string)
+		} else {
+			strValue = value.(string)
+		}
+		v.value, err = strconv.Atoi(strValue)
 	} else {
 		v.value = value
 	}
@@ -82,4 +88,15 @@ func (v *SimpleViewData) CallUpdateValue(value interface{}) (interface{}, error)
 		return nil, err.(error)
 	}
 	return result[0].Interface(), nil
+}
+
+func (v *SimpleViewData) Length() int {
+	// if v.value != nil {
+	// 	return 1
+	// }
+	return 0
+}
+
+func (v *SimpleViewData) Fetch(key string) interface{} {
+	return v.value
 }
