@@ -5,11 +5,11 @@ default:
 
 test:
 	go clean $(PKGS)
-	go test $(PKGS) -check.v
+	go test $(PKGS) -check.v -coverprofile=coverage.txt -covermode=atomic
 
 race:
 	go clean $(PKGS)
-	go test -race $(PKGS) -check.v
+	go test -race $(PKGS) -check.v -coverprofile=coverage.txt -covermode=atomic
 
 profile:
 	go clean $(PKGS)
