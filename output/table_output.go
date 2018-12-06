@@ -18,6 +18,8 @@ func (o *TableOutput) Loop() {
 			<-pTicker.C
 			for i, view := range o.stream.GetViews() {
 				o.tables[i].Rows = view.FetchAllRows()
+				o.tables[i].Analysis()
+				o.tables[i].SetSize()
 				ui.Render(o.tables[i])
 			}
 		}
@@ -25,6 +27,7 @@ func (o *TableOutput) Loop() {
 
 	ui.Handle("q", func(ui.Event) {
 		ui.StopLoop()
+		o.Shutdown()
 	})
 	ui.Loop()
 }
