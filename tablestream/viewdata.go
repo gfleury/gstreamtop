@@ -18,17 +18,19 @@ type ViewData interface {
 	Fetch(key string) interface{}
 	VarType() fieldType
 	KeyArray() []kv
+	SelectedField() bool
 }
 
 type SimpleViewData struct {
 	ViewData
-	name        string
-	value       interface{}
-	field       *Field
-	table       *Table
-	updateValue reflect.Value
-	modifier    string
-	varType     fieldType
+	name          string
+	value         interface{}
+	field         *Field
+	table         *Table
+	updateValue   reflect.Value
+	modifier      string
+	varType       fieldType
+	selectedField bool
 }
 
 func (v *SimpleViewData) VarType() fieldType {
@@ -99,4 +101,8 @@ func (v *SimpleViewData) Length() int {
 
 func (v *SimpleViewData) Fetch(key string) interface{} {
 	return v.value
+}
+
+func (v *SimpleViewData) SelectedField() bool {
+	return v.selectedField
 }

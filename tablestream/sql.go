@@ -144,8 +144,9 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 
 				view.AddViewData(&AggregatedViewData{
 					SimpleViewData: SimpleViewData{
-						field: field,
-						name:  fieldName,
+						field:         field,
+						name:          fieldName,
+						selectedField: true,
 					},
 					data: make(map[string]interface{}),
 				})
@@ -167,8 +168,9 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 
 				viewData := &AggregatedViewData{
 					SimpleViewData: SimpleViewData{
-						field: field,
-						name:  fieldName,
+						field:         field,
+						name:          fieldName,
+						selectedField: true,
 					},
 					data: make(map[string]interface{}),
 				}

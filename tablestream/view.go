@@ -143,6 +143,9 @@ func (v *View) FetchAllRows() [][]string {
 	orderedKeys := v.OrderedKeys()
 
 	for i, column := range v.viewData {
+		if !column.SelectedField() {
+			continue
+		}
 		columnName := column.Name()
 
 		allRows[0] = append(allRows[0], columnName)
