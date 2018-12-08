@@ -1,16 +1,17 @@
 # CONCEPTS (source wikipedia)
 
 ## Database query VS Stream query
-| Database management system (DBMS) | Data stream management system (DSMS)
-| Persistent data (relations) | volatile data streams
-| Random access | Sequential access
-| One-time queries | Continuous queries
-| (theoretically) unlimited secondary storage | limited main memory
-| Only the current state is relevant | Consideration of the order of the input
-| relatively low update rate | potentially extremely high update rate
-| Little or no time requirements | Real-time requirements
-| Assumes exact data | Assumes outdated/inaccurate data
-| Plannable query processing | Variable data arrival and data characteristics 
+| Database management system (DBMS) | Data stream management system (DSMS) |
+|-----------------------------------|--------------------------------------|
+| Persistent data (relations) | volatile data streams |
+| Random access | Sequential access |
+| One-time queries | Continuous queries |
+| (theoretically) unlimited secondary storage | limited main memory |
+| Only the current state is relevant | Consideration of the order of the input |
+| relatively low update rate | potentially extremely high update rate |
+| Little or no time requirements | Real-time requirements |
+| Assumes exact data | Assumes outdated/inaccurate data |
+| Plannable query processing | Variable data arrival and data characteristics |
 
 ## Processing and streaming models
 
