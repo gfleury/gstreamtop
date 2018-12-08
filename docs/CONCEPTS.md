@@ -27,7 +27,7 @@ Instead of using synopses to compress the characteristics of the whole data stre
 
 ## Technical details
 
-StreamSQL extends the type system of SQL to support streams in addition to tables. Several new operations are introduced to manipulate streams.
+It should extends the type system of SQL to support streams in addition to tables. Several new operations are introduced to manipulate streams.
 
 Selecting from a stream - A standard SELECT statement can be issued against a stream to calculate functions (using the target list) or filter out unwanted tuples (using a WHERE clause). The result will be a new stream.
 
