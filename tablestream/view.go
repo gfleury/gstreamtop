@@ -82,10 +82,10 @@ func (v *View) UpdateView() {
 					continue
 				}
 				v.lock.Lock()
-				groupBy, _ := v.groupByField.CallUpdateValue(AggregatedValue{value: newData[v.groupByField.Field().name], groupBy: ""})
+				groupBy, _ := v.groupByField.CallUpdateValue(AggregatedValue{value: newData[v.groupByField.Field().name], groupBy: []string{""}})
 				for key, value := range newData {
 					for _, viewData := range v.ViewDataByFieldName(key) {
-						_, err := viewData.CallUpdateValue(AggregatedValue{value: value, groupBy: groupBy.(string)})
+						_, err := viewData.CallUpdateValue(AggregatedValue{value: value, groupBy: []string{groupBy.(string)}})
 						if err != nil {
 							v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s\n", v.name, viewData.Name(), value, err.Error()))
 						}
@@ -97,25 +97,25 @@ func (v *View) UpdateView() {
 	}
 }
 
-func (v *View) IntViewData(idx int, keys []string) []int {
+func (v *View) IntViewData(idx int, keys [][]string) []int {
 	vd := v.viewData[idx]
 
 	// rowNumber := vd.Length()
 	// ret := make([]int, rowNumber)
-	ret := make([]int, len(keys))
+	ret := make([]int, len(keys[0]))
 
-	for j, key := range keys {
+	for j, key := range keys[0] {
 		var ok bool
-		ret[j], ok = vd.Fetch(key).(int)
+		ret[j], ok = vd.Fetch([]string{key}).(int)
 		if !ok {
-			ret[j] = vd.Fetch(key).(AnalyticFunc).Value()
+			ret[j] = vd.Fetch([]string{key}).(AnalyticFunc).Value()
 		}
 		j++
 	}
 	return ret
 }
 
-func (v *View) StringViewData(idx int, keys []string) []string {
+func (v *View) StringViewData(idx int, keys [][]string) []string {
 	vd := v.viewData[idx]
 	if vd.Field().fieldType != VARCHAR {
 		return []string{}
@@ -123,10 +123,10 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 
 	// rowNumber := vd.Length()
 	// ret := make([]string, rowNumber)
-	ret := make([]string, len(keys))
+	ret := make([]string, len(keys[0]))
 
-	for j, key := range keys {
-		ret[j] = vd.Fetch(key).(string)
+	for j, key := range keys[0] {
+		ret[j] = vd.Fetch([]string{key}).(string)
 		j++
 	}
 	return ret
@@ -154,12 +154,12 @@ func (v *View) FetchAllRows() [][]string {
 
 		switch dataType {
 		case VARCHAR:
-			data := v.StringViewData(i, orderedKeys)
+			data := v.StringViewData(i, [][]string{orderedKeys})
 			for j := range data {
 				allRows[j+1] = append(allRows[j+1], data[j])
 			}
 		case INTEGER:
-			data := v.IntViewData(i, orderedKeys)
+			data := v.IntViewData(i, [][]string{orderedKeys})
 			for i := range data {
 				allRows[i+1] = append(allRows[i+1], fmt.Sprintf("%d", data[i]))
 			}

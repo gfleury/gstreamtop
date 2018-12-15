@@ -15,7 +15,7 @@ type AggregatedViewData struct {
 
 type AggregatedValue struct {
 	value   interface{}
-	groupBy string
+	groupBy []string
 }
 
 type AnalyticFunc interface {
@@ -39,12 +39,12 @@ func (v *AggregatedViewData) UpdateModifier(mod string) error {
 	return nil
 }
 
-func (v *AggregatedViewData) SUM(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) SUM(newData interface{}, groupByName []string) (interface{}, error) {
 	if v.field.fieldType != INTEGER {
 		return nil, fmt.Errorf("not integer")
 	}
-	if v.data[groupByName] == nil {
-		v.data[groupByName] = 0
+	if getKeyDeep(groupByName, v.data) == nil {
+		setKeyDeep(0, groupByName, v.data)
 	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert SUM.")
@@ -54,17 +54,18 @@ func (v *AggregatedViewData) SUM(newData interface{}, groupByName string) (inter
 		if err != nil {
 			return nil, err
 		}
-		v.data[groupByName] = (v.data[groupByName].(int) + newValue)
+		// v.data[groupByName] = (v.data[groupByName].(int) + newValue)
+		setKeyDeep((getKeyDeep(groupByName, v.data).(int) + newValue), groupByName, v.data)
 	}
-	return v.data[groupByName], nil
+	return getKeyDeep(groupByName, v.data), nil
 }
 
-func (v *AggregatedViewData) MAX(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) MAX(newData interface{}, groupByName []string) (interface{}, error) {
 	if v.field.fieldType != INTEGER {
 		return nil, fmt.Errorf("not integer")
 	}
-	if v.data[groupByName] == nil {
-		v.data[groupByName] = 0
+	if getKeyDeep(groupByName, v.data) == nil {
+		setKeyDeep(0, groupByName, v.data)
 	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert MAX.")
@@ -74,19 +75,20 @@ func (v *AggregatedViewData) MAX(newData interface{}, groupByName string) (inter
 		if err != nil {
 			return nil, err
 		}
-		if newValue > v.data[groupByName].(int) {
-			v.data[groupByName] = newValue
+		if newValue > getKeyDeep(groupByName, v.data).(int) {
+			// v.data[groupByName] = newValue
+			setKeyDeep(newValue, groupByName, v.data)
 		}
 	}
-	return v.data[groupByName], nil
+	return getKeyDeep(groupByName, v.data), nil
 }
 
-func (v *AggregatedViewData) MIN(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) MIN(newData interface{}, groupByName []string) (interface{}, error) {
 	if v.field.fieldType != INTEGER {
 		return 0, fmt.Errorf("not integer")
 	}
-	if v.data[groupByName] == nil {
-		v.data[groupByName] = 0
+	if getKeyDeep(groupByName, v.data) == nil {
+		setKeyDeep(0, groupByName, v.data)
 	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert MIN.")
@@ -96,28 +98,29 @@ func (v *AggregatedViewData) MIN(newData interface{}, groupByName string) (inter
 		if err != nil {
 			return nil, err
 		}
-		if newValue < v.data[groupByName].(int) {
-			v.data[groupByName] = newValue
+		if newValue < getKeyDeep(groupByName, v.data).(int) {
+			// v.data[groupByName] = newValue
+			setKeyDeep(newValue, groupByName, v.data)
 		}
 	}
-	return v.data[groupByName], nil
+	return getKeyDeep(groupByName, v.data), nil
 }
 
-func (v *AggregatedViewData) COUNT(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) COUNT(newData interface{}, groupByName []string) (interface{}, error) {
 	//if v.field.fieldType != INTEGER {
 	//	return fmt.Errorf("not integer")
 	//}
-	if v.data[groupByName] == nil {
-		v.data[groupByName] = 0
+	if getKeyDeep(groupByName, v.data) == nil {
+		setKeyDeep(0, groupByName, v.data)
 	}
 	if _, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert COUNT.")
 		return nil, fmt.Errorf("can't read field")
 	}
 
-	v.data[groupByName] = (v.data[groupByName].(int) + 1)
+	setKeyDeep((getKeyDeep(groupByName, v.data).(int) + 1), groupByName, v.data)
 
-	return v.data[groupByName], nil
+	return getKeyDeep(groupByName, v.data), nil
 }
 
 type average struct {
@@ -129,12 +132,12 @@ func (a average) Value() int {
 	return a.value
 }
 
-func (v *AggregatedViewData) AVG(newData interface{}, groupByName string) (interface{}, error) {
-	if v.data[groupByName] == nil {
-		v.data[groupByName] = average{
+func (v *AggregatedViewData) AVG(newData interface{}, groupByName []string) (interface{}, error) {
+	if getKeyDeep(groupByName, v.data) == nil {
+		setKeyDeep(average{
 			count: 0,
 			sum:   0,
-		}
+		}, groupByName, v.data)
 	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert AVG.")
@@ -144,16 +147,16 @@ func (v *AggregatedViewData) AVG(newData interface{}, groupByName string) (inter
 		if err != nil {
 			return nil, err
 		}
-		calculatedAverage := v.data[groupByName].(average)
+		calculatedAverage := getKeyDeep(groupByName, v.data).(average)
 		calculatedAverage.count++
 		calculatedAverage.sum += newValue
 		calculatedAverage.value = calculatedAverage.sum / calculatedAverage.count
-		v.data[groupByName] = calculatedAverage
+		setKeyDeep(calculatedAverage, groupByName, v.data)
 		return calculatedAverage.value, nil
 	}
 }
 
-func (v *AggregatedViewData) SetAggregatedValue(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) SetAggregatedValue(newData interface{}, groupByName []string) (interface{}, error) {
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert.")
 		return nil, fmt.Errorf("not integer")
@@ -180,7 +183,7 @@ func (v *AggregatedViewData) CallUpdateValue(value interface{}) (interface{}, er
 	return result[0].Interface(), nil
 }
 
-func (v *AggregatedViewData) URLIFY(newData interface{}, groupByName string) (interface{}, error) {
+func (v *AggregatedViewData) URLIFY(newData interface{}, groupByName []string) (interface{}, error) {
 	if v.field.fieldType != VARCHAR {
 		return "", fmt.Errorf("not varchar")
 	}
@@ -195,21 +198,22 @@ func (v *AggregatedViewData) URLIFY(newData interface{}, groupByName string) (in
 	}
 }
 
-func setIfGroupByNotEmpty(value interface{}, data map[string]interface{}, groupByName string) (interface{}, error) {
+func setIfGroupByNotEmpty(value interface{}, data map[string]interface{}, groupByName []string) (interface{}, error) {
 	if len(groupByName) == 0 {
 		return value, nil
 	}
-	data[groupByName] = value
+	// data[groupByName] = value
+	setKeyDeep(value, groupByName, data)
 
-	return data[groupByName], nil
+	return getKeyDeep(groupByName, data), nil
 }
 
 func (v *AggregatedViewData) Length() int {
 	return len(v.data)
 }
 
-func (v *AggregatedViewData) Fetch(key string) interface{} {
-	return v.data[key]
+func (v *AggregatedViewData) Fetch(key []string) interface{} {
+	return getKeyDeep(key, v.data)
 }
 
 type kv struct {
@@ -233,4 +237,20 @@ func (v *AggregatedViewData) AggregatedValue() interface{} {
 
 func (v *AggregatedViewData) Value() interface{} {
 	return v.data["__lastItem"]
+}
+
+func getKeyDeep(key []string, mape map[string]interface{}) interface{} {
+	if item, ok := mape[key[0]].(map[string]interface{}); ok {
+		return getKeyDeep(key[1:], item)
+	}
+	return mape[key[0]]
+
+}
+
+func setKeyDeep(value interface{}, key []string, mape map[string]interface{}) interface{} {
+	if item, ok := mape[key[0]].(map[string]interface{}); ok {
+		return setKeyDeep(value, key[1:], item)
+	}
+	mape[key[0]] = value
+	return value
 }

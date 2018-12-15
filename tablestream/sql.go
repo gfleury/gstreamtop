@@ -58,9 +58,12 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 	if len(stmt.GroupBy) < 1 {
 		return fmt.Errorf("the query should have at least one GROUP BY, for filtering use grep")
 	}
-	groupBy, _, err := getFieldByStmt(stmt.GroupBy[0])
-	if err != nil {
-		return err
+	groupBy := make([]string, len(stmt.GroupBy))
+	for i := range stmt.GroupBy {
+		groupBy[i], _, err = getFieldByStmt(stmt.GroupBy[i])
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO Handle more than one column in ORDER BY
@@ -81,11 +84,14 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		return err
 	}
 
-	groupByFields := view.ViewDataByName(groupBy)
-	if len(groupByFields) < 1 {
-		return fmt.Errorf("GROUP BY column %s not found", groupBy)
+	var groupByFields []ViewData
+	for i := range groupBy {
+		groupByField := view.ViewDataByName(groupBy[i])
+		if len(groupByField) < 1 {
+			return fmt.Errorf("GROUP BY column %s not found", groupBy[i])
+		}
+		groupByFields = append(groupByFields, groupByField[0])
 	}
-
 	if orderBy != "" {
 		orderByFields := view.ViewDataByName(orderBy)
 		if len(orderByFields) < 1 {
