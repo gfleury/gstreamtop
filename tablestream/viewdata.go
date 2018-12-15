@@ -15,7 +15,7 @@ type ViewData interface {
 	Field() *Field
 	CallUpdateValue(value interface{}) (interface{}, error)
 	Length() int
-	Fetch(key []string) interface{}
+	Fetch(key string) interface{}
 	VarType() fieldType
 	KeyArray() []kv
 	SelectedField() bool
@@ -99,7 +99,7 @@ func (v *SimpleViewData) Length() int {
 	return 0
 }
 
-func (v *SimpleViewData) Fetch(key []string) interface{} {
+func (v *SimpleViewData) Fetch(key string) interface{} {
 	return v.value
 }
 

@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"sync"
 )
 
 type View struct {
-	name         string
-	viewData     []ViewData
-	groupByField ViewData
-	orderBy      struct {
+	name          string
+	viewData      []ViewData
+	groupByFields []ViewData
+	orderBy       struct {
 		orderByField ViewData
 		direction    string
 	}
@@ -82,12 +83,23 @@ func (v *View) UpdateView() {
 					continue
 				}
 				v.lock.Lock()
-				groupBy, _ := v.groupByField.CallUpdateValue(AggregatedValue{value: newData[v.groupByField.Field().name], groupBy: []string{""}})
+				groupBy := make([]string, len(v.groupByFields))
+				for idx, groupByField := range v.groupByFields {
+					var ok bool
+					groupByIfc, err := groupByField.CallUpdateValue(AggregatedValue{value: newData[groupByField.Field().name], groupBy: []string{""}})
+					if err != nil {
+						v.AddError(fmt.Errorf("failed to update value on %s:%s %s", v.name, groupByField.Field().name, err.Error()))
+						continue
+					}
+					if groupBy[idx], ok = groupByIfc.(string); !ok {
+						groupBy[idx] = fmt.Sprintf("%d", groupByIfc.(int))
+					}
+				}
 				for key, value := range newData {
 					for _, viewData := range v.ViewDataByFieldName(key) {
-						_, err := viewData.CallUpdateValue(AggregatedValue{value: value, groupBy: []string{groupBy.(string)}})
+						_, err := viewData.CallUpdateValue(AggregatedValue{value: value, groupBy: groupBy})
 						if err != nil {
-							v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s\n", v.name, viewData.Name(), value, err.Error()))
+							v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s", v.name, viewData.Name(), value, err.Error()))
 						}
 					}
 				}
@@ -97,25 +109,33 @@ func (v *View) UpdateView() {
 	}
 }
 
-func (v *View) IntViewData(idx int, keys [][]string) []int {
+func (v *View) IntViewData(idx int, keys []string) []int {
 	vd := v.viewData[idx]
 
 	// rowNumber := vd.Length()
 	// ret := make([]int, rowNumber)
-	ret := make([]int, len(keys[0]))
+	ret := make([]int, len(keys))
 
-	for j, key := range keys[0] {
+	for j, key := range keys {
 		var ok bool
-		ret[j], ok = vd.Fetch([]string{key}).(int)
+		ret[j], ok = vd.Fetch(key).(int)
 		if !ok {
-			ret[j] = vd.Fetch([]string{key}).(AnalyticFunc).Value()
+			if analyticFunc, ok := vd.Fetch(key).(AnalyticFunc); !ok {
+				var err error
+				ret[j], err = strconv.Atoi(vd.Fetch(key).(string))
+				if err != nil {
+					ret[j] = 0
+				}
+			} else {
+				ret[j] = analyticFunc.Value()
+			}
 		}
 		j++
 	}
 	return ret
 }
 
-func (v *View) StringViewData(idx int, keys [][]string) []string {
+func (v *View) StringViewData(idx int, keys []string) []string {
 	vd := v.viewData[idx]
 	if vd.Field().fieldType != VARCHAR {
 		return []string{}
@@ -123,10 +143,10 @@ func (v *View) StringViewData(idx int, keys [][]string) []string {
 
 	// rowNumber := vd.Length()
 	// ret := make([]string, rowNumber)
-	ret := make([]string, len(keys[0]))
+	ret := make([]string, len(keys))
 
-	for j, key := range keys[0] {
-		ret[j] = vd.Fetch([]string{key}).(string)
+	for j, key := range keys {
+		ret[j] = vd.Fetch(key).(string)
 		j++
 	}
 	return ret
@@ -154,12 +174,12 @@ func (v *View) FetchAllRows() [][]string {
 
 		switch dataType {
 		case VARCHAR:
-			data := v.StringViewData(i, [][]string{orderedKeys})
+			data := v.StringViewData(i, orderedKeys)
 			for j := range data {
 				allRows[j+1] = append(allRows[j+1], data[j])
 			}
 		case INTEGER:
-			data := v.IntViewData(i, [][]string{orderedKeys})
+			data := v.IntViewData(i, orderedKeys)
 			for i := range data {
 				allRows[i+1] = append(allRows[i+1], fmt.Sprintf("%d", data[i]))
 			}
@@ -189,8 +209,7 @@ func (v *View) SetOrderBy(orderByFields []ViewData, direction string) {
 
 func (v *View) SetGroupBy(groupByFields []ViewData) {
 	// TODO Handle more than one GROUP BY
-	groupByField := groupByFields[0]
-	v.groupByField = groupByField
+	v.groupByFields = groupByFields
 }
 
 func (v *View) OrderedKeys() []string {
