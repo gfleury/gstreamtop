@@ -1,6 +1,8 @@
 package tablestream
 
 import (
+	"time"
+
 	"gopkg.in/check.v1"
 )
 
@@ -35,6 +37,9 @@ func (s *Suite) TestGroupBYExecution(c *check.C) {
 	err = table.AddRow(`66.169.220.99 - - [20/May/2015:21:05:03 +0000] "GET /favicon.ico HTTP/1.1" 200 3638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:27.0) Gecko/20100101 Firefox/27.0"`)
 
 	c.Assert(err, check.IsNil)
+
+	// Time to flush the channels
+	time.Sleep(500 * time.Millisecond)
 
 	allRows := stream.views[0].FetchAllRows()
 	// +--------------+-------+---------+--------+---------------+
