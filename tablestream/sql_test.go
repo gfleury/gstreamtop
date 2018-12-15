@@ -18,18 +18,26 @@ func (s *Suite) TestPrepareSelectGroupBy(c *check.C) {
 		"SELECT URLIFY(url), COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url);",
 		"SELECT url, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY url;",
 		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY urly;",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY urly, MAX(response);",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), AVG(size), MAX(response) FROM log GROUP BY urly, MAX(response), AVG(size);",
+		"SELECT URLIFY(url) as urly, COUNT(*), SUM(size), size, MAX(response) FROM log GROUP BY urly, MAX(response), size;",
 	}
 
-	groupBy := []string{
-		"URLIFY(url)",
-		"url",
-		"urly",
+	groupBys := [][]string{
+		{"URLIFY(url)"},
+		{"url"},
+		{"urly"},
+		{"urly", "MAX(response)"},
+		{"urly", "MAX(response)", "AVG(size)"},
+		{"urly", "MAX(response)", "size"},
 	}
 
 	for i, query := range queries {
 		err = stream.Query(query)
 		c.Assert(err, check.IsNil)
-		c.Assert(stream.GetViews()[i].groupByField.Name(), check.Equals, groupBy[i])
+		for j, groupBy := range groupBys[i] {
+			c.Assert(stream.GetViews()[i].groupByFields[j].Name(), check.Equals, groupBy)
+		}
 	}
 
 	queriesFail := []string{

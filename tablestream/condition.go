@@ -67,7 +67,7 @@ func (c *SimpleCondition) Evaluate(row map[string]string) bool {
 			if leftField.name == key {
 				var param interface{}
 				if _, ok := c.left.(*AggregatedViewData); ok {
-					param = AggregatedValue{value: value, groupBy: "__lastItem"}
+					param = AggregatedValue{value: value, groupBy: []string{"__lastItem"}}
 				} else {
 					param = value
 				}
@@ -78,7 +78,7 @@ func (c *SimpleCondition) Evaluate(row map[string]string) bool {
 			if rightField.name == key {
 				var param interface{}
 				if _, ok := c.right.(*AggregatedViewData); ok {
-					param = AggregatedValue{value: value, groupBy: "__lastItem"}
+					param = AggregatedValue{value: value, groupBy: []string{"__lastItem"}}
 				} else {
 					param = value
 				}
