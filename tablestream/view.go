@@ -121,10 +121,6 @@ func (v *View) IntViewData(idx int, keys []string) []int {
 		var ok bool
 		kvalue := vd.Fetch(key)
 		ret[j], ok = kvalue.(int)
-		if kvalue == nil {
-			fmt.Println("-->" + key)
-			fmt.Printf("---> %d\n", j)
-		}
 		if !ok {
 			if analyticFunc, ok := kvalue.(AnalyticFunc); !ok {
 				var err error
