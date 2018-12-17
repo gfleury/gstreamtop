@@ -13,6 +13,8 @@ type AggregatedViewData struct {
 	data map[string]interface{}
 }
 
+const lastItemKey = "__lastItem"
+
 type AggregatedValue struct {
 	value   interface{}
 	groupBy []string
@@ -40,20 +42,20 @@ func (v *AggregatedViewData) UpdateModifier(mod string) error {
 }
 
 func (v *AggregatedViewData) SUM(newData interface{}, groupByNameArray []string) (interface{}, error) {
-	if v.field.fieldType != INTEGER {
-		return nil, fmt.Errorf("not integer")
-	}
-	groupByName := getGroupByNameKeyString(groupByNameArray)
+	groupByName := groupByNameKeyString(groupByNameArray)
 	if v.data[groupByName] == nil {
 		v.data[groupByName] = 0
 	}
+	if v.field.fieldType != INTEGER {
+		return v.data[groupByName], fmt.Errorf("not integer")
+	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert SUM.")
-		return nil, fmt.Errorf("can't read field")
+		return v.data[groupByName], fmt.Errorf("can't read field")
 	} else {
 		newValue, err := strconv.Atoi(value)
 		if err != nil {
-			return nil, err
+			return v.data[groupByName], err
 		}
 		v.data[groupByName] = (v.data[groupByName].(int) + newValue)
 	}
@@ -61,20 +63,20 @@ func (v *AggregatedViewData) SUM(newData interface{}, groupByNameArray []string)
 }
 
 func (v *AggregatedViewData) MAX(newData interface{}, groupByNameArray []string) (interface{}, error) {
-	if v.field.fieldType != INTEGER {
-		return nil, fmt.Errorf("not integer")
-	}
-	groupByName := getGroupByNameKeyString(groupByNameArray)
+	groupByName := groupByNameKeyString(groupByNameArray)
 	if v.data[groupByName] == nil {
 		v.data[groupByName] = 0
 	}
+	if v.field.fieldType != INTEGER {
+		return v.data[groupByName], fmt.Errorf("not integer")
+	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert MAX.")
-		return nil, fmt.Errorf("can't read field")
+		return v.data[groupByName], fmt.Errorf("can't read field")
 	} else {
 		newValue, err := strconv.Atoi(value)
 		if err != nil {
-			return nil, err
+			return v.data[groupByName], err
 		}
 		if newValue > v.data[groupByName].(int) {
 			v.data[groupByName] = newValue
@@ -84,20 +86,20 @@ func (v *AggregatedViewData) MAX(newData interface{}, groupByNameArray []string)
 }
 
 func (v *AggregatedViewData) MIN(newData interface{}, groupByNameArray []string) (interface{}, error) {
-	if v.field.fieldType != INTEGER {
-		return 0, fmt.Errorf("not integer")
-	}
-	groupByName := getGroupByNameKeyString(groupByNameArray)
+	groupByName := groupByNameKeyString(groupByNameArray)
 	if v.data[groupByName] == nil {
 		v.data[groupByName] = 0
 	}
+	if v.field.fieldType != INTEGER {
+		return v.data[groupByName], fmt.Errorf("not integer")
+	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert MIN.")
-		return 0, fmt.Errorf("can't read field")
+		return v.data[groupByName], fmt.Errorf("can't read field")
 	} else {
 		newValue, err := strconv.Atoi(value)
 		if err != nil {
-			return nil, err
+			return v.data[groupByName], err
 		}
 		if newValue < v.data[groupByName].(int) {
 			v.data[groupByName] = newValue
@@ -110,13 +112,13 @@ func (v *AggregatedViewData) COUNT(newData interface{}, groupByNameArray []strin
 	//if v.field.fieldType != INTEGER {
 	//	return fmt.Errorf("not integer")
 	//}
-	groupByName := getGroupByNameKeyString(groupByNameArray)
+	groupByName := groupByNameKeyString(groupByNameArray)
 	if v.data[groupByName] == nil {
 		v.data[groupByName] = 0
 	}
 	if _, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert COUNT.")
-		return nil, fmt.Errorf("can't read field")
+		return v.data[groupByName], fmt.Errorf("can't read field")
 	}
 
 	v.data[groupByName] = (v.data[groupByName].(int) + 1)
@@ -134,7 +136,7 @@ func (a average) Value() int {
 }
 
 func (v *AggregatedViewData) AVG(newData interface{}, groupByNameArray []string) (interface{}, error) {
-	groupByName := getGroupByNameKeyString(groupByNameArray)
+	groupByName := groupByNameKeyString(groupByNameArray)
 	if v.data[groupByName] == nil {
 		v.data[groupByName] = average{
 			count: 0,
@@ -143,11 +145,11 @@ func (v *AggregatedViewData) AVG(newData interface{}, groupByNameArray []string)
 	}
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert AVG.")
-		return nil, fmt.Errorf("can't read field")
+		return v.data[groupByName], fmt.Errorf("can't read field")
 	} else {
 		newValue, err := strconv.Atoi(value)
 		if err != nil {
-			return nil, err
+			return v.data[groupByName], err
 		}
 		calculatedAverage := v.data[groupByName].(average)
 		calculatedAverage.count++
@@ -158,13 +160,22 @@ func (v *AggregatedViewData) AVG(newData interface{}, groupByNameArray []string)
 	}
 }
 
-func (v *AggregatedViewData) SetAggregatedValue(newData interface{}, groupByName []string) (interface{}, error) {
+func (v *AggregatedViewData) SetAggregatedValue(newData interface{}, groupByNameArray []string) (interface{}, error) {
 	if value, ok := newData.(string); !ok {
 		fmt.Println("Failed to convert.")
 		return nil, fmt.Errorf("not integer")
 	} else {
-		return setIfGroupByNotEmpty(value, v.data, groupByName)
+		if v.VarType() == INTEGER {
+			intValue, err := strconv.Atoi(value)
+			if err != nil {
+				retValue, _ := setIfGroupByNotEmpty(0, v.data, groupByNameArray)
+				return retValue, err
+			}
+			return setIfGroupByNotEmpty(intValue, v.data, groupByNameArray)
+		}
+		return setIfGroupByNotEmpty(value, v.data, groupByNameArray)
 	}
+
 }
 
 func (v *AggregatedViewData) FetchAll() map[string]interface{} {
@@ -180,7 +191,7 @@ func (v *AggregatedViewData) CallUpdateValue(value interface{}) (interface{}, er
 	result := v.updateValue.Call([]reflect.Value{reflect.ValueOf(aggregatedValue.value), reflect.ValueOf(aggregatedValue.groupBy)})
 	err := result[1].Interface()
 	if err != nil {
-		return nil, err.(error)
+		return result[0].Interface(), err.(error)
 	}
 	return result[0].Interface(), nil
 }
@@ -201,7 +212,7 @@ func (v *AggregatedViewData) URLIFY(newData interface{}, groupByName []string) (
 }
 
 func setIfGroupByNotEmpty(value interface{}, data map[string]interface{}, groupByNameArray []string) (interface{}, error) {
-	groupByName := getGroupByNameKeyString(groupByNameArray)
+	groupByName := groupByNameKeyString(groupByNameArray)
 	if len(groupByName) == 0 {
 		return value, nil
 	}
@@ -220,7 +231,23 @@ func (v *AggregatedViewData) Fetch(key string) interface{} {
 
 type kv struct {
 	Key   string
-	Value interface{}
+	Value []interface{}
+}
+
+func mergeKv(keys *[]kv, newKeys *[]kv, idx int) {
+	for _, newKey := range *newKeys {
+		added := false
+		for j, key := range *keys {
+			if key.Key == newKey.Key {
+				(*keys)[j].Value = append((*keys)[j].Value, newKey.Value...)
+				//(*keys)[j].Value[idx] = newKey.Value[0]
+				added = true
+			}
+		}
+		if !added {
+			*keys = append(*keys, newKey)
+		}
+	}
 }
 
 func (v *AggregatedViewData) KeyArray() []kv {
@@ -228,19 +255,15 @@ func (v *AggregatedViewData) KeyArray() []kv {
 	keys := make([]kv, 0, rowNumber)
 
 	for key, value := range v.FetchAll() {
-		keys = append(keys, kv{key, value})
+		keys = append(keys, kv{key, []interface{}{value}})
 	}
 	return keys
 }
 
-func (v *AggregatedViewData) AggregatedValue() interface{} {
-	return v.data[""]
-}
-
 func (v *AggregatedViewData) Value() interface{} {
-	return v.data["__lastItem"]
+	return v.data[lastItemKey]
 }
 
-func getGroupByNameKeyString(groupByName []string) string {
+func groupByNameKeyString(groupByName []string) string {
 	return strings.Join(groupByName, "/")
 }

@@ -87,7 +87,7 @@ func (v *SimpleViewData) CallUpdateValue(value interface{}) (interface{}, error)
 	result := v.updateValue.Call([]reflect.Value{reflect.ValueOf(value)})
 	err := result[1].Interface()
 	if err != nil {
-		return nil, err.(error)
+		return result[0].Interface(), err.(error)
 	}
 	return result[0].Interface(), nil
 }

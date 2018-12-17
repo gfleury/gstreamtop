@@ -8,19 +8,20 @@ import (
 	"sync"
 )
 
+type OrderBy struct {
+	orderByField ViewData
+	direction    string
+}
 type View struct {
 	name          string
 	viewData      []ViewData
 	groupByFields []ViewData
-	orderBy       struct {
-		orderByField ViewData
-		direction    string
-	}
-	condition Conditioner
-	tables    []Table
-	limit     int
-	lock      sync.Mutex
-	errors    []error
+	orderBy       []OrderBy
+	condition     Conditioner
+	tables        []Table
+	limit         int
+	lock          sync.Mutex
+	errors        []error
 }
 
 func CreateView(name string) *View {
@@ -118,11 +119,16 @@ func (v *View) IntViewData(idx int, keys []string) []int {
 
 	for j, key := range keys {
 		var ok bool
-		ret[j], ok = vd.Fetch(key).(int)
+		kvalue := vd.Fetch(key)
+		ret[j], ok = kvalue.(int)
+		if kvalue == nil {
+			fmt.Println("-->" + key)
+			fmt.Printf("---> %d\n", j)
+		}
 		if !ok {
-			if analyticFunc, ok := vd.Fetch(key).(AnalyticFunc); !ok {
+			if analyticFunc, ok := kvalue.(AnalyticFunc); !ok {
 				var err error
-				ret[j], err = strconv.Atoi(vd.Fetch(key).(string))
+				ret[j], err = strconv.Atoi(kvalue.(string))
 				if err != nil {
 					ret[j] = 0
 				}
@@ -201,56 +207,78 @@ func (v *View) SetLimit(limit int) {
 	v.limit = limit
 }
 
-func (v *View) SetOrderBy(orderByFields []ViewData, direction string) {
-	// TODO Handle more than one GROUP BY
-	v.orderBy.orderByField = orderByFields[0]
-	v.orderBy.direction = direction
+func (v *View) AddOrderBy(orderByField ViewData, direction string) {
+	v.orderBy = append(v.orderBy, OrderBy{orderByField, direction})
 }
 
 func (v *View) SetGroupBy(groupByFields []ViewData) {
-	// TODO Handle more than one GROUP BY
 	v.groupByFields = groupByFields
 }
 
 func (v *View) OrderedKeys() []string {
 
-	vd := v.viewData[0]
+	vd := make([]ViewData, len(v.orderBy))
+	var ascOrder []bool
 
-	for _, vd = range v.viewData {
-		if vd == v.orderBy.orderByField {
-			break
+	for _, vdItem := range v.viewData {
+		for i := range v.orderBy {
+			if vdItem == v.orderBy[i].orderByField {
+				vd[i] = vdItem
+				ascOrder = append(ascOrder, v.orderBy[i].direction == "asc")
+			}
 		}
 	}
 
-	keys := vd.KeyArray()
-
-	ascOrder := true
-	if v.orderBy.direction != "asc" {
-		ascOrder = false
+	if len(vd) == 0 {
+		vd = v.viewData[0:1]
 	}
 
-	if v.orderBy.orderByField != nil {
-		sort.Slice(keys, func(i, j int) bool {
-			if vd.VarType() == INTEGER {
-				if keys[i].Value.(int) == keys[j].Value.(int) {
-					return keys[i].Key > keys[j].Key
+	var keys []kv
+	for idx := range vd {
+		newKeys := vd[idx].KeyArray()
+		mergeKv(&keys, &newKeys, idx)
+	}
+
+	if len(v.orderBy) > 0 {
+		sort.Slice(keys, func(i, j int) (status bool) {
+			for idx := range vd {
+				if len(keys[i].Value) <= idx || len(keys[j].Value) <= idx {
+					continue
 				}
-				if ascOrder {
-					return keys[i].Value.(int) > keys[j].Value.(int)
-				} else {
-					return keys[i].Value.(int) < keys[j].Value.(int)
-				}
-			} else if vd.VarType() == VARCHAR {
-				if keys[i].Value.(string) == keys[j].Value.(string) {
-					return keys[i].Key > keys[j].Key
-				}
-				if ascOrder {
-					return keys[i].Value.(string) > keys[j].Value.(string)
-				} else {
-					return keys[i].Value.(string) < keys[j].Value.(string)
+				if vd[idx].VarType() == INTEGER {
+					if keys[i].Value[idx].(int) == keys[j].Value[idx].(int) {
+						if idx == 0 {
+							status = (keys[i].Key > keys[j].Key)
+							continue
+						} else {
+							status = (keys[i].Key > keys[j].Key) || status
+							continue
+						}
+					}
+					if ascOrder[idx] {
+						return keys[i].Value[idx].(int) > keys[j].Value[idx].(int)
+					} else {
+						return keys[i].Value[idx].(int) < keys[j].Value[idx].(int)
+					}
+				} else if vd[idx].VarType() == VARCHAR {
+					if keys[i].Value[idx].(string) == keys[j].Value[idx].(string) {
+						if idx == 0 {
+							status = keys[i].Key > keys[j].Key
+							continue
+						} else {
+							status = keys[i].Key > keys[j].Key || status
+							continue
+						}
+					}
+					if ascOrder[idx] {
+						return keys[i].Value[idx].(string) > keys[j].Value[idx].(string)
+					} else {
+						return keys[i].Value[idx].(string) < keys[j].Value[idx].(string)
+
+					}
 				}
 			}
-			return false
+			return status
 		})
 	}
 
@@ -259,7 +287,7 @@ func (v *View) OrderedKeys() []string {
 		orderedKeys = append(orderedKeys, key.Key)
 	}
 
-	if v.orderBy.orderByField == nil {
+	if len(v.orderBy) == 0 {
 		sort.Strings(orderedKeys)
 	}
 

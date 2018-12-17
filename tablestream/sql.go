@@ -54,7 +54,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		}
 	}
 
-	// TODO Handle more than one column in GROUP BY
+	// Handle multiples GROUP BY
 	if len(stmt.GroupBy) < 1 {
 		return fmt.Errorf("the query should have at least one GROUP BY, for filtering use grep")
 	}
@@ -66,10 +66,11 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		}
 	}
 
-	// TODO Handle more than one column in ORDER BY
-	var orderBy, direction string
-	if len(stmt.OrderBy) > 0 {
-		orderBy, direction, err = getFieldByStmt(stmt.OrderBy[0])
+	// Hanle multiples ORDER BY
+	direction := make([]string, len(stmt.OrderBy))
+	orderBy := make([]string, len(stmt.OrderBy))
+	for i := range stmt.OrderBy {
+		orderBy[i], direction[i], err = getFieldByStmt(stmt.OrderBy[i])
 		if err != nil {
 			return err
 		}
@@ -92,12 +93,12 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 		}
 		groupByFields = append(groupByFields, groupByField[0])
 	}
-	if orderBy != "" {
-		orderByFields := view.ViewDataByName(orderBy)
+	for i := range orderBy {
+		orderByFields := view.ViewDataByName(orderBy[i])
 		if len(orderByFields) < 1 {
-			return fmt.Errorf("ORDER BY column %s not found", orderBy)
+			return fmt.Errorf("ORDER BY column %s not found", orderBy[i])
 		}
-		view.SetOrderBy(orderByFields, direction)
+		view.AddOrderBy(orderByFields[0], direction[i])
 	}
 
 	// WHERE

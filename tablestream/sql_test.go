@@ -99,8 +99,8 @@ func (s *Suite) TestPrepareSelectOrderBy(c *check.C) {
 	for i, query := range queries {
 		err = stream.Query(query)
 		c.Assert(err, check.IsNil)
-		c.Assert(stream.GetViews()[i].orderBy.orderByField.Name(), check.Equals, orderBy[i][0])
-		c.Assert(stream.GetViews()[i].orderBy.direction, check.Equals, orderBy[i][1])
+		c.Assert(stream.GetViews()[i].orderBy[0].orderByField.Name(), check.Equals, orderBy[i][0])
+		c.Assert(stream.GetViews()[i].orderBy[0].direction, check.Equals, orderBy[i][1])
 	}
 
 	queriesFail := []string{
