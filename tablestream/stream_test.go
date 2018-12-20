@@ -1,11 +1,11 @@
 package tablestream
 
 import (
-	"gopkg.in/check.v1"
+	check "gopkg.in/check.v1"
 )
 
-func (s *Suite) TestGetTable(c *check.C) {
-	table, err := s.stream.GetTable("user")
+func (s *Suite) TestTable(c *check.C) {
+	table, err := s.stream.Table("user")
 
 	c.Assert(err, check.IsNil)
 	c.Assert(table.Name(), check.Equals, "user")
@@ -14,7 +14,7 @@ func (s *Suite) TestGetTable(c *check.C) {
 func (s *Suite) TestAddTable(c *check.C) {
 	table := TableSimple{name: "TableTest_Fake"}
 	s.stream.AddTable(&table)
-	tableGot, err := s.stream.GetTable("TableTest_Fake")
+	tableGot, err := s.stream.Table("TableTest_Fake")
 
 	c.Assert(err, check.IsNil)
 	c.Assert(&table, check.Equals, tableGot)

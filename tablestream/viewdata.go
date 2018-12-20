@@ -26,9 +26,7 @@ type SimpleViewData struct {
 	name          string
 	value         interface{}
 	field         *Field
-	table         *Table
 	updateValue   reflect.Value
-	modifier      string
 	varType       fieldType
 	selectedField bool
 }
@@ -51,7 +49,8 @@ func (v *SimpleViewData) Field() *Field {
 
 func (v *SimpleViewData) SetValue(value interface{}) (interface{}, error) {
 	var err error
-	if v.VarType() == INTEGER {
+	switch v.VarType() {
+	case INTEGER:
 		var strValue string
 		if aggValue, ok := value.(AggregatedValue); ok {
 			strValue = aggValue.value.(string)
@@ -59,7 +58,10 @@ func (v *SimpleViewData) SetValue(value interface{}) (interface{}, error) {
 			strValue = value.(string)
 		}
 		v.value, err = strconv.Atoi(strValue)
-	} else {
+	case DATETIME:
+		strValue := value.(string)
+		v.value, err = parseDate(strValue)
+	case VARCHAR:
 		v.value = value
 	}
 	return v.value, err
@@ -79,7 +81,6 @@ func (v *SimpleViewData) UpdateModifier(mod string) error {
 		return fmt.Errorf("function %s not found", mod)
 	}
 	v.updateValue = m
-	v.modifier = mod
 	return nil
 }
 

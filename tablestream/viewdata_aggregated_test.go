@@ -3,7 +3,7 @@ package tablestream
 import (
 	"time"
 
-	"gopkg.in/check.v1"
+	check "gopkg.in/check.v1"
 )
 
 func (s *Suite) TestSetAggregatedValue(c *check.C) {
@@ -13,8 +13,8 @@ func (s *Suite) TestSetAggregatedValue(c *check.C) {
 				name:      "field1",
 				fieldType: INTEGER,
 			},
+			value: make(map[string]interface{}),
 		},
-		data: make(map[string]interface{}),
 	}
 
 	vd.UpdateModifier("SetAggregatedValue")
@@ -128,7 +128,7 @@ func (s *Suite) TestGroupBYExecution(c *check.C) {
 	err = stream.Query(query)
 	c.Assert(err, check.IsNil)
 
-	table, err := stream.GetTable("log")
+	table, err := stream.Table("log")
 	c.Assert(err, check.IsNil)
 
 	err = table.AddRow(`92.115.179.247 - - [20/May/2015:21:05:35 +0000] "GET /favicon.ico HTTP/1.1" 200 366638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:20.0) Gecko/20100101 Firefox/20.0"`)
@@ -188,7 +188,7 @@ func (s *Suite) TestOrderBYExecution(c *check.C) {
 	err = stream.Query(query)
 	c.Assert(err, check.IsNil)
 
-	table, err := stream.GetTable("log")
+	table, err := stream.Table("log")
 	c.Assert(err, check.IsNil)
 
 	err = table.AddRow(`92.115.179.247 - - [20/May/2015:21:05:35 +0000] "GET /favicon.ico HTTP/1.1" 200 366638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:20.0) Gecko/20100101 Firefox/20.0"`)

@@ -41,7 +41,7 @@ func (s *Stream) prepareCreate(stmt *sqlparser.DDL) (err error) {
 }
 
 func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
-	table, err := s.GetTable(stmt.From[0].(*sqlparser.AliasedTableExpr).Expr.(sqlparser.TableName).Name.String())
+	table, err := s.Table(stmt.From[0].(*sqlparser.AliasedTableExpr).Expr.(sqlparser.TableName).Name.String())
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 	}
 	groupBy := make([]string, len(stmt.GroupBy))
 	for i := range stmt.GroupBy {
-		groupBy[i], _, err = getFieldByStmt(stmt.GroupBy[i])
+		groupBy[i], _, _, _, err = getFieldByStmt(stmt.GroupBy[i])
 		if err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 	direction := make([]string, len(stmt.OrderBy))
 	orderBy := make([]string, len(stmt.OrderBy))
 	for i := range stmt.OrderBy {
-		orderBy[i], direction[i], err = getFieldByStmt(stmt.OrderBy[i])
+		orderBy[i], direction[i], _, _, err = getFieldByStmt(stmt.OrderBy[i])
 		if err != nil {
 			return err
 		}
@@ -154,8 +154,8 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 						field:         field,
 						name:          fieldName,
 						selectedField: true,
+						value:         make(map[string]interface{}),
 					},
-					data: make(map[string]interface{}),
 				})
 				return fieldName, err
 			}
@@ -178,8 +178,8 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 						field:         field,
 						name:          fieldName,
 						selectedField: true,
+						value:         make(map[string]interface{}),
 					},
-					data: make(map[string]interface{}),
 				}
 				err = viewData.UpdateModifier("SetAggregatedValue")
 				view.AddViewData(viewData)
@@ -213,7 +213,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 	return fieldName, err
 }
 
-func getFieldByStmt(stmt interface{}) (fieldName, extra string, _ error) {
+func getFieldByStmt(stmt interface{}) (fieldName, extra, method, parameter string, _ error) {
 	var columnName string
 	column, ok := stmt.(*sqlparser.ColName)
 	if !ok {
@@ -223,7 +223,7 @@ func getFieldByStmt(stmt interface{}) (fieldName, extra string, _ error) {
 			if !ok {
 				sqlVal, ok := stmt.(*sqlparser.SQLVal)
 				if !ok {
-					return fieldName, extra, fmt.Errorf("ORDER BY should be collumn name or function")
+					return fieldName, extra, method, parameter, fmt.Errorf("ORDER BY should be collumn name or function")
 				}
 				fieldName, err := fromSQLValToString(sqlVal)
 				if sqlVal.Type == sqlparser.StrVal {
@@ -232,29 +232,45 @@ func getFieldByStmt(stmt interface{}) (fieldName, extra string, _ error) {
 					extra = "intVal"
 				}
 
-				return fieldName, extra, err
+				return fieldName, extra, method, parameter, err
 			}
 			extra = orderExpr.Direction
-			fieldName, _, err := getFieldByStmt(orderExpr.Expr)
-			return fieldName, extra, err
+			fieldName, _, method, parameter, err := getFieldByStmt(orderExpr.Expr)
+			return fieldName, extra, method, parameter, err
 		}
 		funcName := funcExpr.Name.String()
 		aliasedColumn, ok := funcExpr.Exprs[0].(*sqlparser.AliasedExpr)
 		if !ok {
 			_, ok := funcExpr.Exprs[0].(*sqlparser.StarExpr)
 			if !ok {
-				return fieldName, extra, fmt.Errorf("ORDER BY should be EXISTENT collumn name or function")
+				return fieldName, extra, method, parameter, fmt.Errorf("ORDER BY should be EXISTENT collumn name or function")
 			}
 			columnName = "*"
 		} else {
-			column = aliasedColumn.Expr.(*sqlparser.ColName)
-			columnName = column.Name.String()
+			if column, ok := aliasedColumn.Expr.(*sqlparser.ColName); !ok {
+				var err error
+				sqlVal := aliasedColumn.Expr.(*sqlparser.SQLVal)
+				columnName, err = fromSQLValToString(sqlVal)
+				parameter = columnName
+				method = funcName
+				if sqlVal.Type == sqlparser.StrVal {
+					extra = "strVal"
+				} else if sqlVal.Type == sqlparser.IntVal {
+					extra = "intVal"
+				}
+
+				if err != nil {
+					return fieldName, extra, method, parameter, err
+				}
+			} else {
+				columnName = column.Name.String()
+			}
 		}
 		fieldName = fmt.Sprintf("%s(%s)", funcName, columnName)
 	} else {
 		fieldName = column.Name.String()
 	}
-	return fieldName, extra, nil
+	return fieldName, extra, method, parameter, nil
 }
 
 func getLimit(stmt interface{}) (limit int, err error) {
@@ -332,7 +348,7 @@ func parseWhere(expr sqlparser.Expr, view *View, table Table) (c Conditioner, er
 }
 
 func getFieldOrStatic(expr sqlparser.Expr, view *View, table Table) (ViewData, error) {
-	field, extra, _ := getFieldByStmt(expr)
+	field, extra, method, parameter, _ := getFieldByStmt(expr)
 	if extra == "intVal" {
 		integer, err := strconv.Atoi(field)
 		if err == nil {
@@ -346,11 +362,23 @@ func getFieldOrStatic(expr sqlparser.Expr, view *View, table Table) (ViewData, e
 		}
 		return nil, err
 	} else if extra == "strVal" {
+		var value interface{}
+		varType := VARCHAR
+		value = field
+		if strings.HasPrefix(method, "datetime") {
+			var err error
+			varType = DATETIME
+			value, err = parseDate(parameter)
+			if err != nil {
+				return nil, err
+			}
+		}
 		viewData := &SimpleViewData{
 			name:    field,
-			varType: VARCHAR,
-			value:   field,
+			varType: varType,
+			value:   value,
 		}
+
 		err := viewData.UpdateModifier("SetValue")
 		return viewData, err
 	}

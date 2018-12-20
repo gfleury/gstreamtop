@@ -9,7 +9,7 @@ type Stream struct {
 	views  []*View
 }
 
-func (s *Stream) GetTable(name string) (Table, error) {
+func (s *Stream) Table(name string) (Table, error) {
 	for i, table := range s.tables {
 		if table.Name() == name {
 			return s.tables[i], nil
@@ -18,7 +18,7 @@ func (s *Stream) GetTable(name string) (Table, error) {
 	return nil, fmt.Errorf("no table named %s", name)
 }
 
-func (s *Stream) GetTables() []Table {
+func (s *Stream) Tables() []Table {
 	return s.tables
 }
 
