@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type OrderBy struct {
@@ -113,8 +114,6 @@ func (v *View) UpdateView() {
 func (v *View) IntViewData(idx int, keys []string) []int {
 	vd := v.viewData[idx]
 
-	// rowNumber := vd.Length()
-	// ret := make([]int, rowNumber)
 	ret := make([]int, len(keys))
 
 	for j, key := range keys {
@@ -143,12 +142,25 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 		return []string{}
 	}
 
-	// rowNumber := vd.Length()
-	// ret := make([]string, rowNumber)
 	ret := make([]string, len(keys))
 
 	for j, key := range keys {
 		ret[j] = vd.Fetch(key).(string)
+		j++
+	}
+	return ret
+}
+
+func (v *View) DatetimeViewData(idx int, keys []string) []time.Time {
+	vd := v.viewData[idx]
+	if vd.Field().fieldType != DATETIME {
+		return []time.Time{}
+	}
+
+	ret := make([]time.Time, len(keys))
+
+	for j, key := range keys {
+		ret[j] = vd.Fetch(key).(time.Time)
 		j++
 	}
 	return ret
@@ -184,6 +196,11 @@ func (v *View) FetchAllRows() [][]string {
 			data := v.IntViewData(i, orderedKeys)
 			for i := range data {
 				allRows[i+1] = append(allRows[i+1], fmt.Sprintf("%d", data[i]))
+			}
+		case DATETIME:
+			data := v.DatetimeViewData(i, orderedKeys)
+			for k := range data {
+				allRows[k+1] = append(allRows[k+1], data[k].Format(time.ANSIC))
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package tablestream
 import (
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Conditioner interface {
@@ -93,11 +94,21 @@ func (c *SimpleCondition) Evaluate(row map[string]string) bool {
 	case NotEqual:
 		return c.left.Value() != c.right.Value()
 	case Greater:
-		return c.left.Value().(int) > c.right.Value().(int)
+		switch c.left.VarType() {
+		case INTEGER:
+			return c.left.Value().(int) > c.right.Value().(int)
+		case DATETIME:
+			return c.left.Value().(time.Time).After(c.right.Value().(time.Time))
+		}
 	case GreaterOrEqual:
 		return c.left.Value().(int) >= c.right.Value().(int)
 	case Less:
-		return c.left.Value().(int) < c.right.Value().(int)
+		switch c.left.VarType() {
+		case INTEGER:
+			return c.left.Value().(int) < c.right.Value().(int)
+		case DATETIME:
+			return c.left.Value().(time.Time).Before(c.right.Value().(time.Time))
+		}
 	case LessOrEqual:
 		return c.left.Value().(int) <= c.right.Value().(int)
 	case Like:

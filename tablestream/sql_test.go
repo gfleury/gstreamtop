@@ -1,7 +1,7 @@
 package tablestream
 
 import (
-	"gopkg.in/check.v1"
+	check "gopkg.in/check.v1"
 )
 
 func (s *Suite) TestPrepareSelectGroupBy(c *check.C) {
@@ -67,6 +67,16 @@ func (s *Suite) TestPrepareCreate(c *check.C) {
 
 	err = stream.Query("CREATE TABLE test(col2 VARCHAR, col1 VARCHAR) WITH FIELDS IDENTIFIED BY '^(?P<col2>\\S+) (?P<col1>\\S+)$' LINES TERMINATED BY '\n';")
 	c.Assert(err, check.IsNil)
+
+	err = stream.Query("CREATE TABLE test(col2 DATETIME, col1 VARCHAR) WITH FIELDS IDENTIFIED BY '^(?P<col2>\\S+) (?P<col1>\\S+)$' LINES TERMINATED BY '\n';")
+	c.Assert(err, check.IsNil)
+
+	err = stream.Query("CREATE TABLE testDtInt(col2 DATETIME, col1 INTEGER) WITH FIELDS IDENTIFIED BY '^(?P<col2>\\S+) (?P<col1>\\S+)$' LINES TERMINATED BY '\n';")
+	c.Assert(err, check.IsNil)
+	table, err := stream.Table("testDtInt")
+	c.Assert(err, check.IsNil)
+	field := table.Field("col2")
+	c.Assert(field.fieldType, check.Equals, DATETIME)
 }
 
 // ORDER BY column1, column2, ... ASC|DESC;

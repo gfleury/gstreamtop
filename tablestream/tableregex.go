@@ -64,7 +64,6 @@ func regexMapping(stmt *sqlparser.DDL) (t Table, fields int, err error) {
 				table.AddField(&Field{
 					name:      field,
 					fieldType: fieldType(column.Type.Type),
-					table:     table,
 				})
 				break
 			}

@@ -45,7 +45,7 @@ func main() {
 				os.Exit(1)
 			}
 			i, err := input.CreateStreamInputFromStreamOutput(o)
-			tables := o.Stream().GetTables()
+			tables := o.Stream().Tables()
 			i.SetTable(tables[0])
 			if err != nil {
 				fmt.Println(err)
