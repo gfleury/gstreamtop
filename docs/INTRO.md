@@ -15,3 +15,14 @@ Allow use of WINDOW mechanism to aggregate only over certain period time.
 - Input JSON
 - LEFT JOIN on 'static' tables
 - WINDOW mechanism
+
+
+
+
+## Adding datetime 
+- condition.go
+- sql.go
+- view.go
+- viewdata.go
+- viewdata_aggregated.go
+  
