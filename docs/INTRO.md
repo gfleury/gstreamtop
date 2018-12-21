@@ -26,3 +26,4 @@ Allow use of WINDOW mechanism to aggregate only over certain period time.
 - viewdata.go
 - viewdata_aggregated.go
   
+Refactor Viewdata make Vartype non public, and implement all necessary modifications inside it. 

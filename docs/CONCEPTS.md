@@ -67,3 +67,7 @@ WHERE u.level = 'Platinum';
 ```
 
 https://docs.aws.amazon.com/kinesisanalytics/latest/sqlref/analytics-sql-reference.html
+
+Windowing formats
+- TUMBLING, grouping by that window time. WINDOW TUMBLING (SIZE 1 HOUR) will groupby 1 hour
+- SESSION, grouping by keys that happen in that session time. 
