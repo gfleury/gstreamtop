@@ -19,6 +19,7 @@ type ViewData interface {
 	VarType() fieldType
 	KeyArray() []kv
 	SelectedField() bool
+	SetParams(params []interface{})
 }
 
 type SimpleViewData struct {
@@ -29,6 +30,7 @@ type SimpleViewData struct {
 	updateValue   reflect.Value
 	varType       fieldType
 	selectedField bool
+	params        []interface{}
 }
 
 func (v *SimpleViewData) VarType() fieldType {
@@ -106,4 +108,8 @@ func (v *SimpleViewData) Fetch(key string) interface{} {
 
 func (v *SimpleViewData) SelectedField() bool {
 	return v.selectedField
+}
+
+func (v *SimpleViewData) SetParams(params []interface{}) {
+	v.params = params
 }

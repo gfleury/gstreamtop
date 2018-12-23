@@ -289,3 +289,23 @@ func (v *AggregatedViewData) castValue() map[string]interface{} {
 	vdata := v.value.(map[string]interface{})
 	return vdata
 }
+
+func (v *AggregatedViewData) TUMBLING(newData interface{}, groupByNameArray []string) (interface{}, error) {
+	vdata := v.castValue()
+	dtValue, err := parseDate(newData.(string))
+	if err != nil {
+		retValue, _ := setIfGroupByNotEmpty(time.Now(), vdata, groupByNameArray)
+		return retValue, err
+	}
+	return setIfGroupByNotEmpty(dtValue, vdata, groupByNameArray)
+}
+
+func (v *AggregatedViewData) SESSION(newData interface{}, groupByNameArray []string) (interface{}, error) {
+	vdata := v.castValue()
+	dtValue, err := parseDate(newData.(string))
+	if err != nil {
+		retValue, _ := setIfGroupByNotEmpty(time.Now(), vdata, groupByNameArray)
+		return retValue, err
+	}
+	return setIfGroupByNotEmpty(dtValue, vdata, groupByNameArray)
+}
