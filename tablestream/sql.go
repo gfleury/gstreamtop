@@ -191,6 +191,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 					continue
 				}
 
+				viewData.SetParams(params)
 				err = viewData.UpdateModifier(strings.ToUpper(modfier))
 				if err != nil {
 					return fieldName, params, err

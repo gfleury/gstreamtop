@@ -27,6 +27,8 @@ func (v *AggregatedViewData) UpdateModifier(mod string) error {
 	switch mod {
 	case "COUNT":
 		v.varType = INTEGER
+	case "RATE":
+		v.varType = INTEGER
 	default:
 		v.varType = v.field.fieldType
 	}
@@ -290,22 +292,65 @@ func (v *AggregatedViewData) castValue() map[string]interface{} {
 	return vdata
 }
 
-func (v *AggregatedViewData) TUMBLING(newData interface{}, groupByNameArray []string) (interface{}, error) {
-	vdata := v.castValue()
-	dtValue, err := parseDate(newData.(string))
-	if err != nil {
-		retValue, _ := setIfGroupByNotEmpty(time.Now(), vdata, groupByNameArray)
-		return retValue, err
-	}
-	return setIfGroupByNotEmpty(dtValue, vdata, groupByNameArray)
+type session struct {
+	lastSeen time.Time
+	id       int
+}
+
+func (s *session) Value() time.Time {
+	return s.lastSeen
 }
 
 func (v *AggregatedViewData) SESSION(newData interface{}, groupByNameArray []string) (interface{}, error) {
+	groupByName := groupByNameKeyString(groupByNameArray)
 	vdata := v.castValue()
-	dtValue, err := parseDate(newData.(string))
-	if err != nil {
-		retValue, _ := setIfGroupByNotEmpty(time.Now(), vdata, groupByNameArray)
-		return retValue, err
+	if vdata[groupByName] == nil {
+		vdata[groupByName] = session{
+			lastSeen: time.Now(),
+			id:       0,
+		}
 	}
-	return setIfGroupByNotEmpty(dtValue, vdata, groupByNameArray)
+	acValue := vdata[groupByName].(session)
+	dtValue, err := parseDate(newData.(string))
+	if dtValue.Sub(acValue.lastSeen).Seconds() > float64(v.params[0].(int)) {
+		acValue.id++
+	}
+	if err != nil {
+		acValue.lastSeen = time.Now()
+		setIfGroupByNotEmpty(acValue, vdata, groupByNameArray)
+		return fmt.Sprintf("%d", acValue.id), err
+	}
+	acValue.lastSeen = dtValue
+	setIfGroupByNotEmpty(acValue, vdata, groupByNameArray)
+	return fmt.Sprintf("%d", acValue.id), err
+}
+
+type rate struct {
+	AnalyticFunc
+	lastMeasure time.Time
+	count       int
+}
+
+func (r rate) Value() int {
+	return r.count / 30
+}
+
+func (v *AggregatedViewData) RATE(newData interface{}, groupByNameArray []string) (interface{}, error) {
+	groupByName := groupByNameKeyString(groupByNameArray)
+	vdata := v.castValue()
+	if vdata[groupByName] == nil {
+		vdata[groupByName] = rate{
+			lastMeasure: time.Now(),
+			count:       0,
+		}
+	}
+	acValue := vdata[groupByName].(rate)
+	if time.Now().Sub(acValue.lastMeasure).Seconds() <= 2 {
+		acValue.count++
+	} else {
+		acValue.count = 0
+		acValue.lastMeasure = time.Now()
+	}
+
+	return setIfGroupByNotEmpty(acValue, vdata, groupByNameArray)
 }

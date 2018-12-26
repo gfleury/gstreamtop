@@ -238,8 +238,8 @@ func (s *Suite) TestGroupBYWindowsExecution(c *check.C) {
 	err := stream.Query(query)
 	c.Assert(err, check.IsNil)
 
-	query = `SELECT URLIFY(url) as url, COUNT(*) as count, 
-		TUMBLING(dt, 5 SECONDS) as tumbling, SUM(size) as sum, 
+	query = `SELECT URLIFY(url) as url, COUNT(*) as count,
+		SESSION(dt, 5, 'SECONDS') as tumbling, SUM(size) as sum, 
 		size, MAX(response) FROM log 
 		GROUP BY url, size ORDER BY count LIMIT 20;`
 

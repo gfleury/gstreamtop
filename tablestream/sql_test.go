@@ -226,7 +226,6 @@ func (s *Suite) TestPrepareSelectWindow(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	queries := []string{
-		"SELECT URLIFY(url), COUNT(*), TUMBLING(dt, 5, 'SECONDS') as tumbling, SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url), tumbling;",
 		"SELECT URLIFY(url), COUNT(*), SESSION(dt, 60, 'SECONDS') as session, SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url), session;",
 	}
 
