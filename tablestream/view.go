@@ -86,8 +86,12 @@ func (v *View) UpdateView() {
 				}
 				v.lock.Lock()
 				groupBy := make([]string, len(v.groupByFields))
-				for idx, groupByField := range v.groupByFields {
+				idx := 0
+				for _, groupByField := range v.groupByFields {
 					var ok bool
+					if groupByField.Modifier() == "SESSION" {
+						continue
+					}
 					groupByIfc, err := groupByField.CallUpdateValue(AggregatedValue{value: newData[groupByField.Field().name], groupBy: []string{""}})
 					if err != nil {
 						v.AddError(fmt.Errorf("failed to update value on %s:%s %s", v.name, groupByField.Field().name, err.Error()))
@@ -96,6 +100,22 @@ func (v *View) UpdateView() {
 					if groupBy[idx], ok = groupByIfc.(string); !ok {
 						groupBy[idx] = fmt.Sprintf("%d", groupByIfc.(int))
 					}
+					idx++
+				}
+				for _, groupByField := range v.groupByFields {
+					var ok bool
+					if groupByField.Modifier() != "SESSION" {
+						continue
+					}
+					groupByIfc, err := groupByField.CallUpdateValue(AggregatedValue{value: newData[groupByField.Field().name], groupBy: groupBy})
+					if err != nil {
+						v.AddError(fmt.Errorf("failed to update value on %s:%s %s", v.name, groupByField.Field().name, err.Error()))
+						continue
+					}
+					if groupBy[idx], ok = groupByIfc.(string); !ok {
+						groupBy[idx] = fmt.Sprintf("%d", groupByIfc.(int))
+					}
+					idx++
 				}
 				for key, value := range newData {
 					for _, viewData := range v.ViewDataByFieldName(key) {
@@ -152,6 +172,7 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 }
 
 func (v *View) DatetimeViewData(idx int, keys []string) []time.Time {
+	var ok bool
 	vd := v.viewData[idx]
 	if vd.Field().fieldType != DATETIME {
 		return []time.Time{}
@@ -160,7 +181,11 @@ func (v *View) DatetimeViewData(idx int, keys []string) []time.Time {
 	ret := make([]time.Time, len(keys))
 
 	for j, key := range keys {
-		ret[j] = vd.Fetch(key).(time.Time)
+		if ret[j], ok = vd.Fetch(key).(time.Time); !ok {
+			if analyticFunc, ok := vd.Fetch(key).(session); ok {
+				ret[j] = analyticFunc.Value()
+			}
+		}
 		j++
 	}
 	return ret

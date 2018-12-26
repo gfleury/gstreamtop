@@ -8,6 +8,7 @@ import (
 
 type ViewData interface {
 	UpdateModifier(mod string) error
+	Modifier() string
 	Value() interface{}
 	SetValue(value interface{}) (interface{}, error)
 	Name() string
@@ -19,6 +20,7 @@ type ViewData interface {
 	VarType() fieldType
 	KeyArray() []kv
 	SelectedField() bool
+	SetParams(params []interface{})
 }
 
 type SimpleViewData struct {
@@ -29,6 +31,8 @@ type SimpleViewData struct {
 	updateValue   reflect.Value
 	varType       fieldType
 	selectedField bool
+	params        []interface{}
+	modifier      string
 }
 
 func (v *SimpleViewData) VarType() fieldType {
@@ -81,6 +85,7 @@ func (v *SimpleViewData) UpdateModifier(mod string) error {
 		return fmt.Errorf("function %s not found", mod)
 	}
 	v.updateValue = m
+	v.modifier = mod
 	return nil
 }
 
@@ -106,4 +111,12 @@ func (v *SimpleViewData) Fetch(key string) interface{} {
 
 func (v *SimpleViewData) SelectedField() bool {
 	return v.selectedField
+}
+
+func (v *SimpleViewData) SetParams(params []interface{}) {
+	v.params = params
+}
+
+func (v *SimpleViewData) Modifier() string {
+	return v.modifier
 }

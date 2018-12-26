@@ -213,3 +213,24 @@ func (s *Suite) TestPrepareSelectWhere(c *check.C) {
 	}
 
 }
+
+// WINDOW
+func (s *Suite) TestPrepareSelectWindow(c *check.C) {
+	stream := Stream{}
+
+	err := stream.Query(`CREATE TABLE log(ip VARCHAR, col2 VARCHAR, col3 VARCHAR,
+		dt DATETIME, method VARCHAR, url VARCHAR, version VARCHAR, 
+		response INTEGER, size INTEGER, col10 VARCHAR, useragent VARCHAR)
+		WITH FIELDS IDENTIFIED BY '^(?P<ip>\\S+)\\s(?P<col2>\\S+)\\s(?P<col3>\\S+)\\s\\[(?P<dt>[\\w:\\/]+\\s[+\\-]\\d{4})\\]\\s"(?P<method>\\S+)\\s?(?P<url>\\S+)?\\s?(?P<version>\\S+)?"\\s(?P<response>\\d{3}|-)\\s(?P<size>\\d+|-)\\s?"?(?P<col10>[^"]*)"?\\s?"?(?P<useragent>[^"]*)?"?$'
+		LINES TERMINATED BY '\n';`)
+	c.Assert(err, check.IsNil)
+
+	queries := []string{
+		"SELECT URLIFY(url), COUNT(*), SESSION(dt, 60, 'SECONDS') as session, SUM(size), AVG(size), MAX(response) FROM log GROUP BY URLIFY(url), session;",
+	}
+
+	for _, query := range queries {
+		err = stream.Query(query)
+		c.Assert(err, check.IsNil)
+	}
+}

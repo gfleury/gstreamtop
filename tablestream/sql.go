@@ -80,7 +80,7 @@ func (s *Stream) prepareSelect(stmt *sqlparser.Select) error {
 	stmt.Format(buf)
 	view := CreateView(buf.String())
 
-	_, err = view.createFieldMapping(stmt.SelectExprs, table, false)
+	_, _, err = view.createFieldMapping(stmt.SelectExprs, table, false)
 	if err != nil {
 		return err
 	}
@@ -138,8 +138,7 @@ func (s *Stream) Query(query string) error {
 	return err
 }
 
-func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table Table, deep bool) (fieldName string, err error) {
-
+func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table Table, deep bool) (fieldName string, params []interface{}, err error) {
 	for _, selectedExpr := range selectedExpr {
 
 		switch selectedExpr := selectedExpr.(type) {
@@ -157,7 +156,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 						value:         make(map[string]interface{}),
 					},
 				})
-				return fieldName, err
+				return fieldName, params, err
 			}
 
 		case *sqlparser.AliasedExpr:
@@ -166,7 +165,7 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 
 			switch selectedExpr := selectedExpr.Expr.(type) {
 			case *sqlparser.ColName:
-				fieldName := selectedExpr.Name.String()
+				fieldName = selectedExpr.Name.String()
 				field := table.Field(fieldName)
 
 				if asFieldName != "" {
@@ -184,21 +183,18 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 				err = viewData.UpdateModifier("SetAggregatedValue")
 				view.AddViewData(viewData)
 
-				if deep {
-					return fieldName, err
-				}
-
 			case *sqlparser.FuncExpr:
 				modfier := selectedExpr.Name.String()
-				fieldName, err = view.createFieldMapping(selectedExpr.Exprs, table, true)
+				fieldName, params, err = view.createFieldMapping(selectedExpr.Exprs, table, true)
 				viewData := view.ViewData(fieldName)
 				if viewData.Name() == "" {
 					continue
 				}
 
-				err = viewData.UpdateModifier(modfier)
+				viewData.SetParams(params)
+				err = viewData.UpdateModifier(strings.ToUpper(modfier))
 				if err != nil {
-					return fieldName, err
+					return fieldName, params, err
 				}
 
 				if asFieldName != "" {
@@ -207,10 +203,24 @@ func (view *View) createFieldMapping(selectedExpr sqlparser.SelectExprs, table T
 					viewData.SetName(fmt.Sprintf("%s(%s)", modfier, fieldName))
 				}
 
+			case *sqlparser.SQLVal:
+				var paramValue interface{}
+				if selectedExpr.Type == sqlparser.StrVal {
+					paramValue, err = fromSQLValToString(selectedExpr)
+					if err != nil {
+						return fieldName, params, err
+					}
+				} else if selectedExpr.Type == sqlparser.IntVal {
+					paramValue, err = fromSQLValToInt(selectedExpr)
+					if err != nil {
+						return fieldName, params, err
+					}
+				}
+				params = append(params, paramValue)
 			}
 		}
 	}
-	return fieldName, err
+	return fieldName, params, err
 }
 
 func getFieldByStmt(stmt interface{}) (fieldName, extra, method, parameter string, _ error) {
