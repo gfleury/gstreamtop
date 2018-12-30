@@ -32,15 +32,22 @@ func (s *Suite) SetUpSuite(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/bin")
+	c.Assert(err, check.IsNil)
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/bin")
+	c.Assert(err, check.IsNil)
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/bin")
+	c.Assert(err, check.IsNil)
 
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
+	c.Assert(err, check.IsNil)
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
+	c.Assert(err, check.IsNil)
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
+	c.Assert(err, check.IsNil)
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
+	c.Assert(err, check.IsNil)
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/false")
-
+	c.Assert(err, check.IsNil)
 	err = table.AddRow("_analyticsd:*:263:263:Analytics Daemon:/var/db/analyticsd:/usr/bin/true")
 	c.Assert(err, check.IsNil)
 
@@ -96,13 +103,17 @@ func (s *Suite) TestDateTimeFieldQueryGreaterThan(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	err = table.AddRow(`92.115.179.247 - - [20/May/2015:21:05:35 +0000] "GET /favicon.ico HTTP/1.1" 200 366638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:20.0) Gecko/20100101 Firefox/20.0"`)
+	c.Assert(err, check.IsNil)
 	err = table.AddRow(`92.115.179.247 - - [20/May/2015:21:05:35 +0000] "GET /favicon.ico HTTP/1.1" 200 366638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:20.0) Gecko/20100101 Firefox/20.0"`)
+	c.Assert(err, check.IsNil)
 	err = table.AddRow(`92.115.179.247 - - [20/May/2015:21:05:35 +0000] "GET /favicon.ico HTTP/1.1" 200 366638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:20.0) Gecko/20100101 Firefox/20.0"`)
+	c.Assert(err, check.IsNil)
 
 	err = table.AddRow(`66.169.220.99 - - [20/May/2015:21:15:03 +0000] "GET /favicon.ico HTTP/1.1" 200 3638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:27.0) Gecko/20100101 Firefox/27.0"`)
+	c.Assert(err, check.IsNil)
 	err = table.AddRow(`66.169.220.99 - - [20/May/2015:21:15:03 +0000] "GET /favicon.ico HTTP/1.1" 200 3638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:27.0) Gecko/20100101 Firefox/27.0"`)
+	c.Assert(err, check.IsNil)
 	err = table.AddRow(`66.169.220.99 - - [20/May/2015:21:15:03 +0000] "GET /favicon.ico HTTP/1.1" 200 3638 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:27.0) Gecko/20100101 Firefox/27.0"`)
-
 	c.Assert(err, check.IsNil)
 
 	// Time to flush the channels

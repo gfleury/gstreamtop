@@ -48,7 +48,8 @@ func (s *Suite) TestAddRow(c *check.C) {
 
 	}()
 
-	table.AddRow("name1,surname1,surname11,1010,1111,3333, blew")
+	err := table.AddRow("name1,surname1,surname11,1010,1111,3333, blew")
+	c.Assert(err, check.IsNil)
 
 	mmutex.Lock()
 	defer mmutex.Unlock()
