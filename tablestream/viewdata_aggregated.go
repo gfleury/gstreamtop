@@ -345,7 +345,7 @@ func (v *AggregatedViewData) RATE(newData interface{}, groupByNameArray []string
 		}
 	}
 	acValue := vdata[groupByName].(rate)
-	if time.Now().Sub(acValue.lastMeasure).Seconds() <= 2 {
+	if time.Since(acValue.lastMeasure).Seconds() <= 2 {
 		acValue.count++
 	} else {
 		acValue.count = 0
