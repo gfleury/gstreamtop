@@ -317,11 +317,17 @@ func (v *AggregatedViewData) SESSION(newData interface{}, groupByNameArray []str
 	}
 	if err != nil {
 		acValue.lastSeen = time.Now()
-		setIfGroupByNotEmpty(acValue, vdata, groupByNameArray)
+		_, err2 := setIfGroupByNotEmpty(acValue, vdata, groupByNameArray)
+		if err2 != nil {
+			return nil, err2
+		}
 		return fmt.Sprintf("%d", acValue.id), err
 	}
 	acValue.lastSeen = dtValue
-	setIfGroupByNotEmpty(acValue, vdata, groupByNameArray)
+	_, err2 := setIfGroupByNotEmpty(acValue, vdata, groupByNameArray)
+	if err2 != nil {
+		return nil, err2
+	}
 	return fmt.Sprintf("%d", acValue.id), err
 }
 

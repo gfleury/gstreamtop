@@ -48,7 +48,7 @@ func (c *Configuration) Write(file io.Writer) error {
 		return err
 	}
 
-	file.Write(config)
+	_, err = file.Write(config)
 	return err
 }
 

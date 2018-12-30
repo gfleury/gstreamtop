@@ -22,10 +22,14 @@ func (s *Suite) TestAddRow(c *check.C) {
 
 	table := CreateTableRegex("testTable")
 
-	table.AddField(&Field{name: "f1", fieldType: VARCHAR})
-	table.AddField(&Field{name: "f2", fieldType: VARCHAR})
-	table.AddField(&Field{name: "f3", fieldType: VARCHAR})
-	table.AddField(&Field{name: "f4", fieldType: INTEGER})
+	err := table.AddField(&Field{name: "f1", fieldType: VARCHAR})
+	c.Assert(err, check.IsNil)
+	err = table.AddField(&Field{name: "f2", fieldType: VARCHAR})
+	c.Assert(err, check.IsNil)
+	err = table.AddField(&Field{name: "f3", fieldType: VARCHAR})
+	c.Assert(err, check.IsNil)
+	err = table.AddField(&Field{name: "f4", fieldType: INTEGER})
+	c.Assert(err, check.IsNil)
 
 	table.fieldRegexMap = regexp.MustCompile(`(?P<f1>\w+),(?P<f2>\w+),(?P<f3>\w+),(?P<f4>\w+).*$`)
 
@@ -48,7 +52,7 @@ func (s *Suite) TestAddRow(c *check.C) {
 
 	}()
 
-	err := table.AddRow("name1,surname1,surname11,1010,1111,3333, blew")
+	err = table.AddRow("name1,surname1,surname11,1010,1111,3333, blew")
 	c.Assert(err, check.IsNil)
 
 	mmutex.Lock()

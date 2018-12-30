@@ -18,3 +18,7 @@ profile:
 clean:
 	rm -rf *.prof
 	go clean $(PKGS)
+
+lint:
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	golangci-lint run

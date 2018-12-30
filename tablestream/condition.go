@@ -72,7 +72,10 @@ func (c *SimpleCondition) Evaluate(row map[string]string) bool {
 				} else {
 					param = value
 				}
-				c.left.CallUpdateValue(param)
+				_, err := c.left.CallUpdateValue(param)
+				if err != nil {
+					return false
+				}
 			}
 		}
 		if rightField != nil {
@@ -83,7 +86,10 @@ func (c *SimpleCondition) Evaluate(row map[string]string) bool {
 				} else {
 					param = value
 				}
-				c.right.CallUpdateValue(param)
+				_, err := c.right.CallUpdateValue(param)
+				if err != nil {
+					return false
+				}
 			}
 		}
 	}

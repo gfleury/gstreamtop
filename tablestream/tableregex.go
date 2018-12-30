@@ -61,7 +61,7 @@ func regexMapping(stmt *sqlparser.DDL) (t Table, fields int, err error) {
 	for _, column := range stmt.TableSpec.Columns {
 		for _, field := range regexFields {
 			if column.Name.String() == field {
-				table.AddField(&Field{
+				err = table.AddField(&Field{
 					name:      field,
 					fieldType: fieldType(column.Type.Type),
 				})
@@ -71,5 +71,5 @@ func regexMapping(stmt *sqlparser.DDL) (t Table, fields int, err error) {
 	}
 	fields = len(regexFields)
 
-	return table, fields, nil
+	return table, fields, err
 }

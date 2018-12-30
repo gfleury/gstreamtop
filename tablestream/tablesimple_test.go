@@ -13,8 +13,10 @@ func (s *Suite) TestTableCreateTableSimple(c *check.C) {
 func (s *Suite) TestAddField(c *check.C) {
 	table := CreateTable("testTable")
 
-	table.AddField(&Field{name: "f1", fieldType: INTEGER})
-	table.AddField(&Field{name: "f2", fieldType: VARCHAR})
+	err := table.AddField(&Field{name: "f1", fieldType: INTEGER})
+	c.Assert(err, check.IsNil)
+	err = table.AddField(&Field{name: "f2", fieldType: VARCHAR})
+	c.Assert(err, check.IsNil)
 
 	c.Assert(table, check.DeepEquals,
 		&TableSimple{
