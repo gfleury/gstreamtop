@@ -151,7 +151,6 @@ func (v *View) IntViewData(idx int, keys []string) []int {
 				ret[j] = analyticFunc.Value()
 			}
 		}
-		j++
 	}
 	return ret
 }
@@ -166,7 +165,6 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 
 	for j, key := range keys {
 		ret[j] = vd.Fetch(key).(string)
-		j++
 	}
 	return ret
 }
@@ -186,7 +184,6 @@ func (v *View) DatetimeViewData(idx int, keys []string) []time.Time {
 				ret[j] = analyticFunc.Value()
 			}
 		}
-		j++
 	}
 	return ret
 }
