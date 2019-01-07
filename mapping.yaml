@@ -35,3 +35,14 @@ mappings:
     query: SELECT url, COUNT(*) as count, SUM(size) as sum, AVG(size), MAX(response)
       FROM log WHERE url LIKE '/surveys/%' AND response > 200 GROUP BY url ORDER BY
       count LIMIT 5;
+- name: internalLog
+  tables:
+  - 'CREATE TABLE nonAuth(reason VARCHAR, uri VARCHAR, referer VARCHAR, clientIp VARCHAR,
+    userAgent VARCHAR) WITH FIELDS IDENTIFIED BY ''^{\\Dreason\\D: \\D(?P<reason>[^\\\'']*)\\D,
+    \\Duri\\D: \\D(?P<uri>[^\\\'']*)\\D, \\Dreferer\\D: \\D(?P<referer>[^\\\'']*)\\D,
+    \\DclientIp\\D: \\D(?P<clientIp>[^\\\'']*)\\D, \\Duser_agent\\D: \\D(?P<userAgent>[^\\\'']*)\\D}$''
+    LINES TERMINATED BY ''\n'';'
+  queries:
+  - name: basic
+    query: SELECT reason, URLIFY(uri) as url, COUNT(*) as count, URLIFY(referer), clientIp, userAgent from
+      nonAuth GROUP BY url, reason, clientIp ORDER BY count ASC;

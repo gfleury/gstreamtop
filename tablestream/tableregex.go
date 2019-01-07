@@ -52,6 +52,9 @@ func regexMapping(stmt *sqlparser.DDL) (t Table, fields int, err error) {
 	}
 	regexMapTrimmed := strings.TrimPrefix(strings.TrimPrefix(regexMap[1], "'"), "\"")
 	regexMapTrimmed = strings.TrimSuffix(strings.TrimSuffix(regexMapTrimmed, "'"), "\"")
+
+	regexMapTrimmed = strings.Replace(regexMapTrimmed, "\\'", "'", -1)
+
 	table.fieldRegexMap, err = regexp.Compile(regexMapTrimmed)
 	if err != nil {
 		return t, fields, fmt.Errorf("regex present on FIELDS IDENTIFIED by failed to compile: %s", err.Error())

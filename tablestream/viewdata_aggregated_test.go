@@ -328,3 +328,41 @@ func (s *Suite) TestGroupBYWindowsExecution(c *check.C) {
 	c.Assert(allRows[2][5], check.Equals, "200")
 
 }
+
+func (s *Suite) TestSingleQuotesRegex(c *check.C) {
+	query := `CREATE TABLE nonAuth(reason VARCHAR, uri VARCHAR, referer VARCHAR, clientIp VARCHAR, userAgent VARCHAR) WITH FIELDS IDENTIFIED BY '^{\\Dreason\\D: \\D(?P<reason>[^\\\']*)\\D, \\Duri\\D: \\D(?P<uri>[^\\\']*)\\D, \\Dreferer\\D: \\D(?P<referer>[^\\\']*)\\D, \\DclientIp\\D: \\D(?P<clientIp>[^\\\']*)\\D, \\Duser_agent\\D: \\D(?P<userAgent>[^\\\']*)\\D}$' LINES TERMINATED BY '\n';`
+
+	stream := &Stream{}
+
+	err := stream.Query(query)
+	c.Assert(err, check.IsNil)
+
+	query = `SELECT reason, uri, COUNT(*) as count, referer, clientIp, userAgent from
+	nonAuth GROUP BY uri, reason ORDER BY count ASC;`
+
+	err = stream.Query(query)
+	c.Assert(err, check.IsNil)
+
+	table, err := stream.Table("nonAuth")
+	c.Assert(err, check.IsNil)
+
+	err = table.AddRow(`{'reason': 'No cookie', 'uri': '/config', 'referer': 'https://example.com', 'clientIp': '33.44.44.6', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0.2 Safari/605.1.15'}`)
+	c.Assert(err, check.IsNil)
+	err = table.AddRow(`{'reason': 'Invalid SSO cookie signature', 'uri': '/chair', 'referer': 'https://example.com', 'clientIp': '33.44.44.6', 'user_agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36'}`)
+	c.Assert(err, check.IsNil)
+	err = table.AddRow(`{'reason': 'Invalid SSO cookie signature', 'uri': '/bleom/sdsds', 'referer': 'https://example.com', 'clientIp': '33.44.44.6', 'user_agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko'}`)
+	c.Assert(err, check.IsNil)
+
+	err = table.AddRow(`{'reason': 'Invalid SSO cookie signature', 'uri': '/config', 'referer': 'https://example.com', 'clientIp': '33.44.44.4', 'user_agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko'}`)
+	c.Assert(err, check.IsNil)
+	err = table.AddRow(`{'reason': 'Invalid SSO cookie signature', 'uri': '/bleom/sdsds', 'referer': 'https://example.com', 'clientIp': '33.44.44.4', 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko'}`)
+	c.Assert(err, check.IsNil)
+
+	// Time to flush the channels
+	time.Sleep(1000 * time.Millisecond)
+
+	allRows := stream.views[0].FetchAllRows()
+
+	c.Assert(len(allRows), check.Equals, 5)
+
+}

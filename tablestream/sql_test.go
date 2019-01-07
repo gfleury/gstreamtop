@@ -77,6 +77,10 @@ func (s *Suite) TestPrepareCreate(c *check.C) {
 	c.Assert(err, check.IsNil)
 	field := table.Field("col2")
 	c.Assert(field.fieldType, check.Equals, DATETIME)
+
+	err = stream.Query(`CREATE TABLE nonAuth(reason VARCHAR, uri VARCHAR, referer VARCHAR, clientIp VARCHAR, userAgent VARCHAR) WITH FIELDS IDENTIFIED BY '^{\Dreason\D: \D(?P<reason>[^\\\']*)\D, \Duri\D: \D(?P<uri>[^\\\']*)\D, \Dreferer\D: \D(?P<referer>[^\\\']*)\D, \DclientIp\D: \D(?P<clientIp>[^\\\']*)\D, \Duser_agent\D: \D(?P<userAgent>[^\\\']*)\D}$' LINES TERMINATED BY '\n';`)
+	c.Assert(err, check.IsNil)
+
 }
 
 // ORDER BY column1, column2, ... ASC|DESC;
