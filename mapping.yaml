@@ -39,7 +39,7 @@ mappings:
   tables:
   - CREATE TABLE log(ip VARCHAR, dt VARCHAR, method VARCHAR, url VARCHAR, version
     VARCHAR, response INTEGER, size INTEGER, time_seconds INTEGER, time_miliseconds
-    INTEGER) WITH FIELDS IDENTIFIED BY '^(?P<ip>\\S+)\\s\\[(?P<dt>[\\w:\\/]+\\s[+\\-]\\d{4})\\]\\s"(?P<method>\\S+)\\s?(?P<url>\\S+)?\\s?(?P<version>\\S+)?"\\s(?P<response>\\d{3}|-)\\s(?P<size>\\d+|-)\\s\\|\\s(?P<time_seconds>\\d+)\\ss\\s\\|\\s(?P<time_miliseconds>\\d+)\\sus$'    
+    INTEGER) WITH FIELDS IDENTIFIED BY '^(?P<ip>\\S+)\\s\\[(?P<dt>[\\w:\\/]+\\s[+\\-]\\d{4})\\]\\s"(?P<method>\\S+)\\s?(?P<url>\\S+)?\\s?(?P<version>\\S+)?"\\s(?P<response>\\d{3}|-)\\s(?P<size>\\d+|-)\\s\\|\\s(?P<time_seconds>\\d+)\\ss\\s\\|\\s(?P<time_miliseconds>\\d+)\\sus$'
     LINES TERMINATED BY '\n';
   queries:
   - name: responsebyurl
@@ -49,7 +49,6 @@ mappings:
     query: SELECT url, COUNT(*) as count, SUM(size) as sum, AVG(size), MAX(response)
       FROM log WHERE url LIKE '/surveys/%' AND response > 200 GROUP BY url ORDER BY
       count LIMIT 5;
-
 - name: internalLog
   tables:
   - 'CREATE TABLE nonAuth(reason VARCHAR, uri VARCHAR, referer VARCHAR, clientIp VARCHAR,
@@ -59,5 +58,6 @@ mappings:
     LINES TERMINATED BY ''\n'';'
   queries:
   - name: basic
-    query: SELECT reason, URLIFY(uri) as url, COUNT(*) as count, URLIFY(referer), clientIp, userAgent from
-      nonAuth GROUP BY url, reason, clientIp ORDER BY count ASC;
+    query: SELECT reason, URLIFY(uri) as url, COUNT(*) as count, URLIFY(referer),
+      clientIp, userAgent from nonAuth GROUP BY url, reason, clientIp ORDER BY count
+      ASC;

@@ -40,7 +40,10 @@ func (i *CSVStreamInput) Configure() error {
 }
 
 func (i *CSVStreamInput) PushData(data interface{}) {
-	i.Table().AddRow(data)
+	err := i.Table().AddRow(data)
+	if err != nil {
+		*i.Errors() <- err
+	}
 }
 
 func (i *CSVStreamInput) Run(file io.Reader) {

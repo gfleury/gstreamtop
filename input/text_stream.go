@@ -41,7 +41,10 @@ func (i *StreamInput) SetTable(t tablestream.Table) {
 }
 
 func (i *StreamInput) PushData(data interface{}) {
-	i.Table().AddRow(data)
+	err := i.Table().AddRow(data)
+	if err != nil {
+		*i.Errors() <- err
+	}
 }
 
 func (i *StreamInput) Run(file io.Reader) {
