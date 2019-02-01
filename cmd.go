@@ -110,6 +110,9 @@ func main() {
 			o = &output.SimpleTableOutput{}
 		case "table":
 			o = &output.TableOutput{}
+		case "prometheus":
+			o = &output.PrometheusOutput{}
+
 		}
 		if inputFile == "" {
 			inputFd = os.Stdin

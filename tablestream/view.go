@@ -33,6 +33,10 @@ func CreateView(name string) *View {
 	return view
 }
 
+func (v *View) Name() string {
+	return v.name
+}
+
 func (v *View) AddViewData(vd ViewData) {
 	v.viewData = append(v.viewData, vd)
 }
@@ -44,6 +48,10 @@ func (v *View) ViewData(name string) ViewData {
 		}
 	}
 	return &AggregatedViewData{}
+}
+
+func (v *View) ViewDatas() []ViewData {
+	return v.viewData
 }
 
 func (v *View) AddTable(t Table) {
@@ -132,6 +140,8 @@ func (v *View) UpdateView() {
 }
 
 func (v *View) IntViewData(idx int, keys []string) []int {
+	v.lock.Lock()
+	defer v.lock.Unlock()
 	vd := v.viewData[idx]
 
 	ret := make([]int, len(keys))
@@ -156,6 +166,8 @@ func (v *View) IntViewData(idx int, keys []string) []int {
 }
 
 func (v *View) StringViewData(idx int, keys []string) []string {
+	v.lock.Lock()
+	defer v.lock.Unlock()
 	vd := v.viewData[idx]
 	if vd.Field().fieldType != VARCHAR {
 		return []string{}
@@ -171,6 +183,8 @@ func (v *View) StringViewData(idx int, keys []string) []string {
 
 func (v *View) DatetimeViewData(idx int, keys []string) []time.Time {
 	var ok bool
+	v.lock.Lock()
+	defer v.lock.Unlock()
 	vd := v.viewData[idx]
 	if vd.Field().fieldType != DATETIME {
 		return []time.Time{}
@@ -190,9 +204,8 @@ func (v *View) DatetimeViewData(idx int, keys []string) []time.Time {
 
 func (v *View) FetchAllRows() [][]string {
 	v.lock.Lock()
-	defer v.lock.Unlock()
-
 	rowNumber := v.viewData[0].Length()
+	v.lock.Unlock()
 
 	allRows := make([][]string, rowNumber+1)
 
@@ -227,11 +240,7 @@ func (v *View) FetchAllRows() [][]string {
 		}
 	}
 
-	if v.limit == 0 || rowNumber == 0 || rowNumber <= v.limit {
-		return allRows
-	}
-
-	return allRows[:v.limit+1]
+	return allRows
 }
 
 func (v *View) PrintView() {
@@ -251,7 +260,8 @@ func (v *View) SetGroupBy(groupByFields []ViewData) {
 }
 
 func (v *View) OrderedKeys() []string {
-
+	v.lock.Lock()
+	defer v.lock.Unlock()
 	vd := make([]ViewData, len(v.orderBy))
 	var ascOrder []bool
 
@@ -317,7 +327,9 @@ func (v *View) OrderedKeys() []string {
 		})
 	}
 
-	orderedKeys := make([]string, 0, len(keys))
+	keysNumber := len(keys)
+
+	orderedKeys := make([]string, 0, keysNumber)
 	for _, key := range keys {
 		orderedKeys = append(orderedKeys, key.Key)
 	}
@@ -326,7 +338,11 @@ func (v *View) OrderedKeys() []string {
 		sort.Strings(orderedKeys)
 	}
 
-	return orderedKeys
+	if v.limit == 0 || keysNumber == 0 || keysNumber <= v.limit {
+		return orderedKeys
+	}
+
+	return orderedKeys[:v.limit]
 }
 
 func (v *View) AddError(err error) {
@@ -347,4 +363,8 @@ func (v *View) evaluateWhere(row map[string]string) bool {
 		return v.condition.Evaluate(row)
 	}
 	return true
+}
+
+func (v *View) Lock() *sync.Mutex {
+	return &v.lock
 }
