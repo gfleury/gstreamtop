@@ -223,7 +223,17 @@ func (v *AggregatedViewData) URLIFY(newData interface{}, groupByName []string) (
 		fmt.Println("Failed to convert URLIFY.")
 		return "", fmt.Errorf("can't read field")
 	} else {
-		return setIfGroupByNotEmpty(strings.Split(value, "?")[0], vdata, groupByName)
+		// Remove querystring
+		value = strings.Split(value, "?")[0]
+		// URL path levels
+		levels := strings.Split(value, "/")
+		if len(levels) > 3 {
+			value = strings.Join(levels[:3], "/")
+		} else {
+			value = strings.Join(levels, "/")
+		}
+
+		return setIfGroupByNotEmpty(value, vdata, groupByName)
 	}
 }
 
