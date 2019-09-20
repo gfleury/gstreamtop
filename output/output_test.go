@@ -1,11 +1,14 @@
 package output
 
 import (
+	"fmt"
+	"github.com/gfleury/gstreamtop/conf"
 	"github.com/gfleury/gstreamtop/tablestream"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -90,4 +93,34 @@ func (s *Suite) TestPrometheus(c *check.C) {
 		c.FailNow()
 	}
 
+}
+
+func (s *Suite) TestOutput(c *check.C) {
+	conf := &conf.Configuration{}
+
+	conf.SetFileURL("../mapping.yaml")
+	err := conf.ReadFile()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	o := &StreamOutput{}
+	err = o.CreateStreamFromConfigurationMapping(&conf.Mappings[0], nil)
+	c.Assert(err, check.IsNil)
+
+	a := true
+
+	o.SetInputExists(func() *bool {
+		return &a
+	})
+	exists := o.InputExists()
+	c.Assert(*exists, check.Equals, true)
+
+	a = false
+	exists = o.InputExists()
+	c.Assert(*exists, check.Equals, false)
+
+	b := o.Stream()
+	c.Assert(b, check.NotNil)
 }
