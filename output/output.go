@@ -13,7 +13,7 @@ type Outputer interface {
 	Configure() error
 	Stream() *tablestream.Stream
 	ErrorChan() *chan error
-	CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error
+	CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries []string) error
 	InputExists() *bool
 	SetInputExists(func() *bool)
 	EnableProfile()
@@ -28,7 +28,7 @@ type StreamOutput struct {
 	profile     bool
 }
 
-func (o *StreamOutput) CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries *string) error {
+func (o *StreamOutput) CreateStreamFromConfigurationMapping(mapping *conf.Mapping, createNamedQueries []string) error {
 	o.stream = &tablestream.Stream{}
 	for _, tableDDL := range mapping.Tables {
 		err := o.Stream().Query(tableDDL)
@@ -36,15 +36,22 @@ func (o *StreamOutput) CreateStreamFromConfigurationMapping(mapping *conf.Mappin
 			return err
 		}
 	}
-	if createNamedQueries != nil {
+	for _, createNamedQuerie := range createNamedQueries {
+		found := false
 		for _, query := range mapping.Queries {
-			if query.Name == *createNamedQueries {
-				err := o.stream.Query(query.Query)
-				return err
+			if query.Name == createNamedQuerie {
+				err := o.Stream().Query(query.Query)
+				if err != nil {
+					return err
+				}
+				found = true
 			}
 		}
-		return fmt.Errorf("No query named %s found", *createNamedQueries)
+		if !found {
+			return fmt.Errorf("No query named %s found", createNamedQuerie)
+		}
 	}
+
 	return nil
 }
 

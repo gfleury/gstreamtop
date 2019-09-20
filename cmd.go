@@ -31,7 +31,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			for i, mapping := range c.Mappings {
 				if mapping.Name == args[0] {
-					err := o.CreateStreamFromConfigurationMapping(&c.Mappings[i], &args[1])
+					err := o.CreateStreamFromConfigurationMapping(&c.Mappings[i], args[1:])
 					if err != nil {
 						fmt.Println(err)
 						os.Exit(1)
@@ -73,17 +73,24 @@ func main() {
 						fmt.Println(err)
 						os.Exit(1)
 					}
-					err = o.Stream().Query(args[1])
-					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+
+					queries := args[1:]
+					for _, query := range queries {
+						err = o.Stream().Query(query)
+						if err != nil {
+							fmt.Println(err)
+							os.Exit(1)
+						}
 					}
+
 					err = o.Configure()
 					if err != nil {
 						fmt.Println(err)
 						os.Exit(1)
 					}
+
 					break
+
 				}
 			}
 			if o == nil {
