@@ -87,56 +87,56 @@ func (v *View) UpdateView() {
 			table.Lock()
 			tableChan := table.TypeInstance(v.name)
 			table.Unlock()
-			select {
-			case newData := <-tableChan:
-				if !v.evaluateWhere(newData) {
+
+			newData := <-tableChan
+			if !v.evaluateWhere(newData) {
+				continue
+			}
+			v.lock.Lock()
+			groupBy := make([]string, len(v.groupByFields))
+			idx := 0
+			for _, groupByField := range v.groupByFields {
+				var ok bool
+				if groupByField.Modifier() == "SESSION" {
 					continue
 				}
-				v.lock.Lock()
-				groupBy := make([]string, len(v.groupByFields))
-				idx := 0
-				for _, groupByField := range v.groupByFields {
-					var ok bool
-					if groupByField.Modifier() == "SESSION" {
-						continue
-					}
-					groupByIfc, err := groupByField.CallUpdateValue(AggregatedValue{value: newData[groupByField.Field().name], groupBy: []string{""}})
-					if err != nil {
-						v.AddError(fmt.Errorf("failed to update value on %s:%s %s", v.name, groupByField.Field().name, err.Error()))
-						continue
-					}
-					if groupBy[idx], ok = groupByIfc.(string); !ok {
-						groupBy[idx] = fmt.Sprintf("%d", groupByIfc.(int))
-					}
-					idx++
+				groupByIfc, err := groupByField.CallUpdateValue(AggregatedValue{value: newData[groupByField.Field().name], groupBy: []string{""}})
+				if err != nil {
+					v.AddError(fmt.Errorf("failed to update value on %s:%s %s", v.name, groupByField.Field().name, err.Error()))
+					continue
 				}
-				for _, groupByField := range v.groupByFields {
-					var ok bool
-					if groupByField.Modifier() != "SESSION" {
-						continue
-					}
-					groupByIfc, err := groupByField.CallUpdateValue(AggregatedValue{value: newData[groupByField.Field().name], groupBy: groupBy})
-					if err != nil {
-						v.AddError(fmt.Errorf("failed to update value on %s:%s %s", v.name, groupByField.Field().name, err.Error()))
-						continue
-					}
-					if groupBy[idx], ok = groupByIfc.(string); !ok {
-						groupBy[idx] = fmt.Sprintf("%d", groupByIfc.(int))
-					}
-					idx++
+				if groupBy[idx], ok = groupByIfc.(string); !ok {
+					groupBy[idx] = fmt.Sprintf("%d", groupByIfc.(int))
 				}
-				for key, value := range newData {
-					for _, viewData := range v.ViewDataByFieldName(key) {
-						_, err := viewData.CallUpdateValue(AggregatedValue{value: value, groupBy: groupBy})
-						if err != nil {
-							v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s", v.name, viewData.Name(), value, err.Error()))
-						}
-					}
-				}
-				v.lock.Unlock()
+				idx++
 			}
+			for _, groupByField := range v.groupByFields {
+				var ok bool
+				if groupByField.Modifier() != "SESSION" {
+					continue
+				}
+				groupByIfc, err := groupByField.CallUpdateValue(AggregatedValue{value: newData[groupByField.Field().name], groupBy: groupBy})
+				if err != nil {
+					v.AddError(fmt.Errorf("failed to update value on %s:%s %s", v.name, groupByField.Field().name, err.Error()))
+					continue
+				}
+				if groupBy[idx], ok = groupByIfc.(string); !ok {
+					groupBy[idx] = fmt.Sprintf("%d", groupByIfc.(int))
+				}
+				idx++
+			}
+			for key, value := range newData {
+				for _, viewData := range v.ViewDataByFieldName(key) {
+					_, err := viewData.CallUpdateValue(AggregatedValue{value: value, groupBy: groupBy})
+					if err != nil {
+						v.AddError(fmt.Errorf("failed to update value on %s:%s %s %s", v.name, viewData.Name(), value, err.Error()))
+					}
+				}
+			}
+			v.lock.Unlock()
 		}
 	}
+
 }
 
 func (v *View) IntViewData(idx int, keys []string) []int {

@@ -43,10 +43,8 @@ func (s *Suite) TestAddRow(c *check.C) {
 		defer mmutex.Unlock()
 		for {
 			for _, j := range table.typeInstance {
-				select {
-				case msg = <-j:
-					return
-				}
+				msg = <-j
+				return
 			}
 		}
 
