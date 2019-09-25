@@ -3,7 +3,7 @@
 # gstreamtop
 
 Gstreamtop is a text stream SQL query tool (fancy wording). It basically maps plain text lines/json/csv entries as SQL table fields and allowing to run SQL queries. The main purpose is aggregation (queries must have GROUP BY).
-Simplifying you can tail a log file and run a SQL query aggregating for something. Differently from ELK stack or Kafka + KSQL, the idea is to have something locally that you can run quickly (as a test or probe) and without external dependencies.
+Simplifying you can tail a log file and run a SQL query aggregating for something. Differently from ELK stack or Kafka + KSQL (of course there is no comparison between the tools), the idea is to have something locally that you can run quickly (as a test or probe) and without external dependencies.
 
 ## Example
 
