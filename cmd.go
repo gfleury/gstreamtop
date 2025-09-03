@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -15,7 +17,7 @@ import (
 
 func main() {
 	var mapFile, inputFile, outputer string
-	var inputFd *os.File
+	var inputFd io.Reader
 	var o output.Outputer
 	var err error
 	var profiling bool
@@ -122,7 +124,13 @@ func main() {
 		if inputFile == "" {
 			inputFd = os.Stdin
 		} else {
-			inputFd, err = os.Open(inputFile)
+			if strings.HasPrefix(inputFile, "loki://") {
+				// Handle Loki input
+				inputFd, err = input.CreateLokiStream(inputFile)
+			} else {
+				inputFd, err = os.Open(inputFile)
+			}
+
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -142,7 +150,6 @@ func main() {
 		}
 	})
 
-	defer inputFd.Close()
 	if cpuProfileHandler != nil {
 		defer cpuProfileHandler()
 	}

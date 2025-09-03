@@ -12,14 +12,21 @@ import (
 func (s *Stream) prepareCreate(stmt *sqlparser.DDL) (err error) {
 	var t Table
 	var fields int
+	isRegex := false
 
 	if strings.Contains(stmt.TableSpec.Options, "FIELDS IDENTIFIED by") {
 		t, fields, err = regexMapping(stmt)
 		if err != nil {
 			return err
 		}
+		isRegex = true
+	} else if strings.Contains(strings.ToLower(stmt.TableSpec.Options), "json") {
+		t, fields, err = jsonMapping(stmt)
+		if err != nil {
+			return err
+		}
 	} else {
-		return fmt.Errorf("unable to find FIELDS IDENTIFIED by")
+		return fmt.Errorf("unable to find FIELDS IDENTIFIED by. Found options: %s", stmt.TableSpec.Options)
 	}
 
 	// Handle LINES TERMINATED BY
@@ -33,7 +40,7 @@ func (s *Stream) prepareCreate(stmt *sqlparser.DDL) (err error) {
 		t.SetRowSeparator("\n")
 	}
 
-	if len(t.Fields()) != len(stmt.TableSpec.Columns) || fields != len(stmt.TableSpec.Columns) {
+	if isRegex && (len(t.Fields()) != len(stmt.TableSpec.Columns) || fields != len(stmt.TableSpec.Columns)) {
 		return fmt.Errorf("regex groups doesn't match table columns: missing %d fields", fields-len(stmt.TableSpec.Columns))
 	}
 	s.AddTable(t)

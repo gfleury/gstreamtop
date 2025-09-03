@@ -61,3 +61,29 @@ mappings:
     query: SELECT reason, URLIFY(uri) as url, COUNT(*) as count, URLIFY(referer),
       clientIp, userAgent from nonAuth GROUP BY url, reason, clientIp ORDER BY count
       ASC;
+- name: debug
+  tables:
+  - 'CREATE TABLE debug(timestampx VARCHAR,
+    request_id VARCHAR,
+    proxy_upstream_name VARCHAR,
+    proxy_alternative_upstream_name VARCHAR,
+    upstream_status VARCHAR,
+    upstream_addr VARCHAR,
+    request_method VARCHAR,
+    url VARCHAR,
+    statusx VARCHAR,
+    request_length VARCHAR,
+    upstream_response_length VARCHAR,
+    http_user_agent VARCHAR,
+    remote_addr VARCHAR,
+    http_referer VARCHAR,
+    upstream_response_time VARCHAR,
+    server_protocol VARCHAR,
+    request_time VARCHAR,
+    body_bytes_sent VARCHAR,
+    upstream_http_throttlingstatus VARCHAR
+    ) WITH JSON
+    LINES TERMINATED BY ''\n'';'
+  queries:
+  - name: all
+    query: SELECT count(*), request_method FROM debug GROUP BY request_method;
