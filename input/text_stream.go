@@ -2,6 +2,7 @@ package input
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strings"
 	"sync/atomic"
@@ -71,6 +72,7 @@ func (i *StreamInput) Loop(file io.Reader) {
 			buf = token[1]
 		}
 		if err != nil {
+			fmt.Println("StreamInput read error:", err)
 			break
 		}
 		i.entriesRead++

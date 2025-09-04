@@ -28,7 +28,7 @@ func (t *TableJson) AddRow(data interface{}) error {
 	// Assuming row is a JSON string, we can unmarshal it into tableRow
 	if err := json.Unmarshal([]byte(row), &tableRowInterface); err != nil {
 		fmt.Println("Error xxxxx JSON row: ", err)
-		return err
+		return nil
 	}
 
 	// Convert tableRowInterface members all to strings into tableRow

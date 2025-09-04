@@ -2,9 +2,6 @@ package output
 
 import (
 	"fmt"
-	"github.com/gfleury/gstreamtop/conf"
-	"github.com/gfleury/gstreamtop/tablestream"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +9,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gfleury/gstreamtop/conf"
+	"github.com/gfleury/gstreamtop/tablestream"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	check "gopkg.in/check.v1"
 )
@@ -88,8 +89,8 @@ func (s *Suite) TestPrometheus(c *check.C) {
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, check.IsNil)
 	strBody := string(body)
-	if !strings.Contains(strBody, `FirstView_count{row="/favicon.ico/3638"} 3.0`) ||
-		!strings.Contains(strBody, `FirstView_count{row="/favicon.ico/366638"} 3.0`) {
+	if !strings.Contains(strBody, `FirstView_count{row="/favicon.ico/3638"} 3`) ||
+		!strings.Contains(strBody, `FirstView_count{row="/favicon.ico/366638"} 3`) {
 		c.FailNow()
 	}
 

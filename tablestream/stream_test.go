@@ -48,7 +48,7 @@ func (s *Suite) TestQueryCreateTableWithoutRegexMapping(c *check.C) {
 						LINES TERMINATED BY '\n';`
 	err := s.stream.Query(query)
 
-	c.Assert(err, check.ErrorMatches, "unable to find FIELDS IDENTIFIED by")
+	c.Assert(err, check.ErrorMatches, "unable to find FIELDS IDENTIFIED by.*\n'")
 }
 
 func (s *Suite) TestQueryCreateTableWithWrongRegexMapping(c *check.C) {

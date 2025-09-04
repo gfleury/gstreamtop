@@ -53,7 +53,7 @@ func (lr *LokiReader) fetch() {
 	// Connect to WebSocket
 	conn, _, err := websocket.DefaultDialer.Dial(wsUrl, nil)
 	if err != nil {
-		log.Println("WebSocket dial error:", err)
+		log.Println("XXXXXXXXXXXXXXXXXXXXWebSocket dial error:", err)
 		return
 	}
 	defer conn.Close()
@@ -61,11 +61,12 @@ func (lr *LokiReader) fetch() {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
+			log.Println("XXXXXXXXXXXXXXXXXXXXXWebSocket read error:", err)
+
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure) || err == io.EOF {
 				lr.eof = true
 				break
 			}
-			log.Println("WebSocket read error:", err)
 			return
 		}
 
@@ -78,7 +79,8 @@ func (lr *LokiReader) fetch() {
 		}
 		if err := json.Unmarshal(message, &result); err != nil {
 			log.Println("JSON unmarshal error:", err)
-			return
+			continue
+			// return
 		}
 
 		for _, stream := range result.Streams {
@@ -98,10 +100,6 @@ func (lr *LokiReader) fetch() {
 			}
 		}
 
-		// If buffer filled, break to allow Read() to consume
-		if lr.buffer.Len() > 0 {
-			break
-		}
 	}
 
 	if lr.buffer.Len() == 0 {
